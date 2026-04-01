@@ -54,11 +54,19 @@ ALTER TABLE listings_tracker_prices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listings_tracker_photos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE listings_tracker_access_codes ENABLE ROW LEVEL SECURITY;
 
--- Properties: Admin full access, no public access
+-- Properties: Admin full access, public read via access codes
 CREATE POLICY "Admin full access to own properties" ON listings_tracker_properties
   FOR ALL USING (auth.uid() = admin_id) WITH CHECK (auth.uid() = admin_id);
 
--- Prices: Admin can read/write all, users can insert
+CREATE POLICY "Public read properties via access codes" ON listings_tracker_properties
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM listings_tracker_access_codes
+      WHERE property_id = id
+    )
+  );
+
+-- Prices: Admin can read/write all, users can read and insert
 CREATE POLICY "Admin full access to prices" ON listings_tracker_prices
   FOR ALL USING (
     EXISTS (
@@ -72,10 +80,18 @@ CREATE POLICY "Admin full access to prices" ON listings_tracker_prices
     )
   );
 
+CREATE POLICY "Users can read prices via access codes" ON listings_tracker_prices
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM listings_tracker_access_codes
+      WHERE property_id = property_id
+    )
+  );
+
 CREATE POLICY "Users can insert prices" ON listings_tracker_prices
   FOR INSERT WITH CHECK (true);
 
--- Photos: Admin can read/write all, users can insert their own
+-- Photos: Admin can read/write all, users can read and insert
 CREATE POLICY "Admin full access to photos" ON listings_tracker_photos
   FOR ALL USING (
     EXISTS (
@@ -89,12 +105,23 @@ CREATE POLICY "Admin full access to photos" ON listings_tracker_photos
     )
   );
 
+CREATE POLICY "Users can read photos via access codes" ON listings_tracker_photos
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM listings_tracker_access_codes
+      WHERE property_id = property_id
+    )
+  );
+
 CREATE POLICY "Users can insert photos" ON listings_tracker_photos
   FOR INSERT WITH CHECK (true);
 
--- Access codes: Admin only
+-- Access codes: Admin only for write, public read by code value
 CREATE POLICY "Admin full access to codes" ON listings_tracker_access_codes
   FOR ALL USING (auth.uid() = created_by) WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Public read access codes by code value" ON listings_tracker_access_codes
+  FOR SELECT USING (true);
 
 -- Create indexes for performance
 CREATE INDEX idx_listings_tracker_properties_admin_id ON listings_tracker_properties(admin_id);

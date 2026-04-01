@@ -46,7 +46,8 @@ export default function UserProperties() {
         .select("property_id")
         .eq("code", storedCode);
       if (codeError || !codeRows || codeRows.length === 0) {
-        setError("No properties found for this code. Please check your code and try again.");
+        console.error("Code lookup error:", codeError, "Rows:", codeRows);
+        setError("Invalid code. Please check your code and try again.");
         setLoading(false);
         return;
       }
@@ -90,7 +91,9 @@ export default function UserProperties() {
       setHeroImages(heroMap);
       setLatestPrices(pricesMap);
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      console.error("Error loading properties:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to load properties";
+      setError(errorMessage);
       setLoading(false);
     }
     setLoading(false);
@@ -160,7 +163,9 @@ export default function UserProperties() {
       setNewPrice("");
       await loadData();
     } catch (err) {
-      setFormError("Something went wrong. Please try again.");
+      console.error("Error adding property:", err);
+      const errorMessage = err instanceof Error ? err.message : "Failed to add property";
+      setFormError(errorMessage);
     }
     setSubmitting(false);
   };
