@@ -15,6 +15,8 @@ export default function NewProperty() {
   const [mls_number, setMls_number] = useState("");
   const [listing_price, setListing_price] = useState("");
   const [notes, setNotes] = useState("");
+  const [existingCode, setExistingCode] = useState("");
+  const [existingCodes, setExistingCodes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -29,6 +31,18 @@ export default function NewProperty() {
         return;
       }
       setUser(user);
+
+      // Load existing codes for this admin
+      const { data: codesData } = await supabase
+        .from("listings_tracker_access_codes")
+        .select("code")
+        .eq("created_by", user.id);
+
+      if (codesData) {
+        const unique = [...new Set(codesData.map((c) => c.code))];
+        setExistingCodes(unique);
+      }
+
       setLoading(false);
     }
     checkAuth();
@@ -46,7 +60,8 @@ export default function NewProperty() {
     }
 
     try {
-      const code = generateCode();
+      // Use existing code or generate a new one
+      const code = existingCode.trim() || generateCode();
 
       // Insert property
       const { data: propData, error: propError } = await supabase
@@ -76,7 +91,7 @@ export default function NewProperty() {
       if (codeError) throw codeError;
 
       // Show code to admin
-      alert(`Property created! Your 4-digit code is: ${code}`);
+      alert(`Property created! Share this 4-digit code: ${code}`);
       router.push("/admin/properties");
     } catch (err: any) {
       setError(err.message);
@@ -155,6 +170,47 @@ export default function NewProperty() {
                 style={{ marginTop: "0.5rem", minHeight: "100px" }}
                 onInput={(e: any) => setNotes(getEventValue(e))}
               />
+            </div>
+
+            <div>
+              <dl-text size="300" color="secondary">Access Code</dl-text>
+              <dl-text size="200" color="secondary" style={{ display: "block", marginBottom: "0.5rem" }}>
+                Leave blank to generate a new code, or enter an existing code to group with other listings
+              </dl-text>
+              <dl-input
+                type="text"
+                placeholder="e.g. 1234 (leave blank for new code)"
+                value={existingCode}
+                style={{ marginTop: "0.25rem" }}
+                onInput={(e: any) => {
+                  const val = getEventValue(e).replace(/\D/g, "").slice(0, 4);
+                  setExistingCode(val);
+                }}
+              />
+              {existingCodes.length > 0 && (
+                <div style={{ marginTop: "0.5rem", display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <dl-text size="200" color="secondary">Existing codes:</dl-text>
+                  {existingCodes.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setExistingCode(c)}
+                      style={{
+                        padding: "0.125rem 0.5rem",
+                        background: existingCode === c ? "#007AFF" : "#f0f0f0",
+                        color: existingCode === c ? "white" : "#333",
+                        border: "none",
+                        borderRadius: "0.25rem",
+                        cursor: "pointer",
+                        fontSize: "0.875rem",
+                        fontFamily: "monospace",
+                      }}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {error && <dl-text size="300" color="tertiary">{error}</dl-text>}

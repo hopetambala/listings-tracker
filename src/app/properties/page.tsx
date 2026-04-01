@@ -15,6 +15,7 @@ export default function UserProperties() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [heroImages, setHeroImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,46 +40,54 @@ export default function UserProperties() {
 
         setCode(storedCode);
 
-        // Find property by code
-        const { data: codeData, error: codeError } = await supabase
+        // Find ALL properties for this code
+        const { data: codeRows, error: codeError } = await supabase
           .from("listings_tracker_access_codes")
           .select("property_id")
-          .eq("code", storedCode)
-          .single();
+          .eq("code", storedCode);
 
-        if (codeError || !codeData) {
-          router.push("/");
+        if (codeError || !codeRows || codeRows.length === 0) {
+          setError("No properties found for this code. Please check your code and try again.");
+          setLoading(false);
           return;
         }
 
-        // Fetch property (this will be limited to all properties from that admin)
-        // For now, we fetch the single property
-        const { data: prop, error: propError } = await supabase
+        const propertyIds = codeRows.map((r) => r.property_id);
+
+        // Fetch all matching properties
+        const { data: propsData, error: propError } = await supabase
           .from("listings_tracker_properties")
           .select("*")
-          .eq("id", codeData.property_id)
-          .single();
+          .in("id", propertyIds)
+          .order("created_at", { ascending: false });
 
-        if (propError || !prop) {
-          router.push("/");
+        if (propError || !propsData) {
+          setError("Failed to load properties. Please try again.");
+          setLoading(false);
           return;
         }
 
-        setProperties([prop]);
+        setProperties(propsData);
 
-        // Fetch first photo for the property (hero image)
-        const { data: photosData } = await supabase
-          .from("listings_tracker_photos")
-          .select("photo_url")
-          .eq("property_id", prop.id)
-          .order("display_order", { ascending: true })
-          .limit(1);
-
-        if (photosData && photosData.length > 0) {
-          setHeroImages({ [prop.id]: photosData[0].photo_url });
-        }
+        // Fetch first photo for each property (hero images)
+        const heroMap: Record<string, string> = {};
+        await Promise.all(
+          propsData.map(async (prop) => {
+            const { data: photosData } = await supabase
+              .from("listings_tracker_photos")
+              .select("photo_url")
+              .eq("property_id", prop.id)
+              .order("display_order", { ascending: true })
+              .limit(1);
+            if (photosData && photosData.length > 0) {
+              heroMap[prop.id] = photosData[0].photo_url;
+            }
+          })
+        );
+        setHeroImages(heroMap);
       } catch (err) {
-        router.push("/");
+        setError("Something went wrong. Please try again.");
+        setLoading(false);
       }
 
       setLoading(false);
@@ -90,6 +99,27 @@ export default function UserProperties() {
     return (
       <main className="page page--centered">
         <dl-spinner />
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="page page--centered">
+        <div className="cl-dlite-text-center">
+          <dl-heading level={2}>Something went wrong</dl-heading>
+          <dl-text color="secondary" style={{ margin: "1rem 0", display: "block" }}>{error}</dl-text>
+          <dl-button
+            variant="primary"
+            size="md"
+            onClick={() => {
+              localStorage.removeItem("listings_tracker_session");
+              router.push("/");
+            }}
+          >
+            Try a Different Code
+          </dl-button>
+        </div>
       </main>
     );
   }
