@@ -286,6 +286,25 @@ export default function UserProperties() {
                       </div>
                     )}
                   </div>
+                  {prop.listing_link && (
+                    <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid #e0e0e0" }}>
+                      <a 
+                        href={prop.listing_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "var(--tk-dlite-semantic-color-primary-base)",
+                          textDecoration: "none",
+                          fontSize: "0.875rem",
+                          fontWeight: "500",
+                          wordBreak: "break-all",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {prop.listing_link}
+                      </a>
+                    </div>
+                  )}
                   {prop.notes && (
                     <dl-text size="300" style={{ marginTop: "0.5rem" }}>
                       {prop.notes}
