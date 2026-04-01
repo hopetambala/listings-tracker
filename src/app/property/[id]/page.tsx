@@ -233,15 +233,14 @@ export default function PropertyDetail() {
 
   return (
     <main className="page page--centered">
-      <div className="cl-dlite-w-full" style={{ maxWidth: "60rem" }}>
-        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-sem-mb-600">
+      <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
+        <div className="header-row" style={{ marginBottom: "1.5rem" }}>
           {editingAddress ? (
-            <div style={{ flex: 1, display: "flex", gap: "1rem", marginRight: "1rem", alignItems: "flex-end" }}>
+            <div style={{ width: "100%", display: "flex", gap: "0.5rem", flexDirection: "column", alignItems: "stretch" }}>
               <dl-input
                 label="Address"
                 value={newAddress}
                 onInput={(e: any) => setNewAddress(getEventValue(e))}
-                style={{ flex: 1 }}
               />
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <dl-button
@@ -249,6 +248,7 @@ export default function PropertyDetail() {
                   size="sm"
                   onClick={handleUpdateAddress}
                   disabled={savingAddress}
+                  full-width
                 >
                   {savingAddress ? "Saving..." : "Save"}
                 </dl-button>
@@ -260,14 +260,15 @@ export default function PropertyDetail() {
                     setNewAddress(property.street_address || "");
                   }}
                   disabled={savingAddress}
+                  full-width
                 >
                   Cancel
                 </dl-button>
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <dl-heading level={1}>{property.street_address || "Listing"}</dl-heading>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flex: 1, flexWrap: "wrap" }}>
+              <dl-heading level={1} style={{ wordBreak: "break-word" }}>{property.street_address || "Listing"}</dl-heading>
               <dl-button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
                 Edit
               </dl-button>
@@ -281,7 +282,7 @@ export default function PropertyDetail() {
         {/* Overview Card */}
         <dl-card style={{ marginBottom: "2rem" }}>
           <div style={{ padding: "1.5rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+            <div className="form-grid">
               <div>
                 <dl-text size="300" color="secondary">MLS Number</dl-text>
                 <dl-text style={{ marginTop: "0.5rem" }}>
@@ -326,7 +327,7 @@ export default function PropertyDetail() {
             <dl-heading level={2} style={{ marginBottom: "1rem" }}>
               Track Price
             </dl-heading>
-            <div style={{ display: "flex", gap: "1rem" }}>
+            <div className="form-row">
               <dl-input
                 type="number"
                 placeholder="Enter current price"
@@ -372,7 +373,7 @@ export default function PropertyDetail() {
             <dl-heading level={2} style={{ marginBottom: "1rem" }}>
               Photos
             </dl-heading>
-            <div style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", alignItems: "center" }}>
+            <div style={{ marginBottom: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
               <input
                 type="file"
                 multiple
@@ -382,7 +383,7 @@ export default function PropertyDetail() {
                   padding: "0.5rem",
                   border: "1px solid #e0e0e0",
                   borderRadius: "0.375rem",
-                  flex: 1,
+                  width: "100%",
                 }}
               />
               {selectedFiles.length > 0 && (
@@ -394,6 +395,7 @@ export default function PropertyDetail() {
                 variant="primary"
                 disabled={uploading || selectedFiles.length === 0 || undefined}
                 onClick={handleUploadPhotos}
+                full-width
               >
                 {uploading ? "Uploading..." : "Upload"}
               </dl-button>

@@ -201,8 +201,8 @@ export default function UserProperties() {
 
   return (
     <main className="page page--centered">
-      <div className="cl-dlite-w-full" style={{ maxWidth: "60rem" }}>
-        <div style={{ marginBottom: "2rem", display: "flex", gap: "1rem", alignItems: "flex-end" }}>
+      <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
+        <div className="form-row" style={{ marginBottom: "2rem" }}>
           <div style={{ flex: 2 }}>
             <dl-input
               label="Listing Link"

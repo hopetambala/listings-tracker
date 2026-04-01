@@ -37,17 +37,17 @@ export default function Home() {
 
   return (
     <main className="page page--centered">
-      <div className="cl-dlite-text-center">
-        <dl-heading level={1}>Listings Tracker</dl-heading>
+      <div className="cl-dlite-text-center" style={{ padding: "0 1rem" }}>
+        <dl-heading level={1} style={{ wordBreak: "break-word", fontSize: "clamp(1.5rem, 5vw, 2.5rem)" }}>Listings Tracker</dl-heading>
         <dl-text color="secondary">Enter your 4-digit access code to view listings</dl-text>
       </div>
 
-      <form onSubmit={handleJoin} className="cl-dlite-flex cl-dlite-flex-col cl-dlite-items-center cl-dlite-sem-gap-400 cl-dlite-w-full" style={{ maxWidth: "20rem" }}>
+      <form onSubmit={handleJoin} className="cl-dlite-flex cl-dlite-flex-col cl-dlite-items-center cl-dlite-sem-gap-400 cl-dlite-w-full" style={{ maxWidth: "20rem", padding: "0 1rem" }}>
         <dl-input
           type="text"
           placeholder="4-digit code"
           value={code}
-          style={{ textAlign: "center", fontSize: "1.5rem", letterSpacing: "0.1em" }}
+          style={{ textAlign: "center", fontSize: "1.5rem", letterSpacing: "0.1em", width: "100%" }}
           onInput={(e: any) => {
             const val = getEventValue(e).replace(/\D/g, "");
             setCode(val.slice(0, 4));
@@ -64,7 +64,7 @@ export default function Home() {
         </dl-button>
       </form>
 
-      <div style={{ maxWidth: "20rem" }} className="cl-dlite-w-full">
+      <div style={{ maxWidth: "20rem", width: "100%", padding: "0 1rem" }} className="cl-dlite-w-full">
         <dl-divider orientation="horizontal" />
         <div className="cl-dlite-text-center cl-dlite-sem-mt-400">
           <dl-button variant="ghost" size="sm" onClick={() => router.push("/admin")}>
