@@ -20,6 +20,9 @@ export default function PropertyDetail() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(false);
+  const [newAddress, setNewAddress] = useState("");
+  const [savingAddress, setSavingAddress] = useState(false);
   const router = useRouter();
   const params = useParams();
   const propertyId = params.id as string;
@@ -63,6 +66,7 @@ export default function PropertyDetail() {
         }
 
         setProperty(prop);
+        setNewAddress(prop.street_address || "");
 
         // Fetch prices
         const { data: pricesData } = await supabase
@@ -87,6 +91,30 @@ export default function PropertyDetail() {
     }
     loadData();
   }, [router, propertyId, supabase]);
+
+  async function handleUpdateAddress() {
+    if (!newAddress.trim()) {
+      alert("Please enter an address");
+      return;
+    }
+
+    setSavingAddress(true);
+    try {
+      const { error } = await supabase
+        .from("listings_tracker_properties")
+        .update({ street_address: newAddress })
+        .eq("id", propertyId);
+
+      if (error) throw error;
+
+      setProperty({ ...property!, street_address: newAddress });
+      setEditingAddress(false);
+    } catch (err: any) {
+      alert("Error updating address: " + err.message);
+    } finally {
+      setSavingAddress(false);
+    }
+  }
 
   async function handleAddPrice() {
     if (!newPrice) {
@@ -207,7 +235,44 @@ export default function PropertyDetail() {
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem" }}>
         <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-sem-mb-600">
-          <dl-heading level={1}>{property.street_address || "Listing"}</dl-heading>
+          {editingAddress ? (
+            <div style={{ flex: 1, display: "flex", gap: "1rem", marginRight: "1rem", alignItems: "flex-end" }}>
+              <dl-input
+                label="Address"
+                value={newAddress}
+                onInput={(e: any) => setNewAddress(getEventValue(e))}
+                style={{ flex: 1 }}
+              />
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <dl-button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleUpdateAddress}
+                  disabled={savingAddress}
+                >
+                  {savingAddress ? "Saving..." : "Save"}
+                </dl-button>
+                <dl-button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setEditingAddress(false);
+                    setNewAddress(property.street_address || "");
+                  }}
+                  disabled={savingAddress}
+                >
+                  Cancel
+                </dl-button>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <dl-heading level={1}>{property.street_address || "Listing"}</dl-heading>
+              <dl-button variant="ghost" size="sm" onClick={() => setEditingAddress(true)}>
+                Edit
+              </dl-button>
+            </div>
+          )}
           <dl-button variant="ghost" size="sm" onClick={() => router.push("/properties")}>
             ← Back
           </dl-button>

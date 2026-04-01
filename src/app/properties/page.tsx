@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
+import { getEventValue } from "@/dlite-design-system/wc-helpers";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Photo = Database["public"]["Tables"]["listings_tracker_photos"]["Row"];
@@ -14,86 +15,155 @@ export default function UserProperties() {
   const [code, setCode] = useState("");
   const [properties, setProperties] = useState<Property[]>([]);
   const [heroImages, setHeroImages] = useState<Record<string, string>>({});
+  const [latestPrices, setLatestPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
   const supabase = createClient();
+  const [newLink, setNewLink] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
 
-  useEffect(() => {
-    async function loadData() {
-      // Check localStorage for code
-      const stored = localStorage.getItem("listings_tracker_session");
-      if (!stored) {
+  const loadData = async () => {
+    setLoading(true);
+    setError("");
+    const stored = localStorage.getItem("listings_tracker_session");
+    if (!stored) {
+      router.push("/");
+      return;
+    }
+    try {
+      const { code: storedCode, expiry } = JSON.parse(stored);
+      if (Date.now() > expiry) {
+        localStorage.removeItem("listings_tracker_session");
         router.push("/");
         return;
       }
-
-      try {
-        const { code: storedCode, expiry } = JSON.parse(stored);
-
-        // Check if expired
-        if (Date.now() > expiry) {
-          localStorage.removeItem("listings_tracker_session");
-          router.push("/");
-          return;
-        }
-
-        setCode(storedCode);
-
-        // Find ALL properties for this code
-        const { data: codeRows, error: codeError } = await supabase
-          .from("listings_tracker_access_codes")
-          .select("property_id")
-          .eq("code", storedCode);
-
-        if (codeError || !codeRows || codeRows.length === 0) {
-          setError("No properties found for this code. Please check your code and try again.");
-          setLoading(false);
-          return;
-        }
-
-        const propertyIds = codeRows.map((r) => r.property_id);
-
-        // Fetch all matching properties
-        const { data: propsData, error: propError } = await supabase
-          .from("listings_tracker_properties")
-          .select("*")
-          .in("id", propertyIds)
-          .order("created_at", { ascending: false });
-
-        if (propError || !propsData) {
-          setError("Failed to load properties. Please try again.");
-          setLoading(false);
-          return;
-        }
-
-        setProperties(propsData);
-
-        // Fetch first photo for each property (hero images)
-        const heroMap: Record<string, string> = {};
-        await Promise.all(
-          propsData.map(async (prop) => {
-            const { data: photosData } = await supabase
-              .from("listings_tracker_photos")
-              .select("photo_url")
-              .eq("property_id", prop.id)
-              .order("display_order", { ascending: true })
-              .limit(1);
-            if (photosData && photosData.length > 0) {
-              heroMap[prop.id] = photosData[0].photo_url;
-            }
-          })
-        );
-        setHeroImages(heroMap);
-      } catch (err) {
-        setError("Something went wrong. Please try again.");
+      setCode(storedCode);
+      const { data: codeRows, error: codeError } = await supabase
+        .from("listings_tracker_access_codes")
+        .select("property_id")
+        .eq("code", storedCode);
+      if (codeError || !codeRows || codeRows.length === 0) {
+        setError("No properties found for this code. Please check your code and try again.");
         setLoading(false);
+        return;
       }
-
+      const propertyIds = codeRows.map((r) => r.property_id);
+      const { data: propsData, error: propError } = await supabase
+        .from("listings_tracker_properties")
+        .select("*")
+        .in("id", propertyIds)
+        .order("created_at", { ascending: false });
+      if (propError || !propsData) {
+        setError("Failed to load properties. Please try again.");
+        setLoading(false);
+        return;
+      }
+      setProperties(propsData);
+      const heroMap: Record<string, string> = {};
+      const pricesMap: Record<string, number> = {};
+      await Promise.all(
+        propsData.map(async (prop) => {
+          const { data: photosData } = await supabase
+            .from("listings_tracker_photos")
+            .select("photo_url")
+            .eq("property_id", prop.id)
+            .order("display_order", { ascending: true })
+            .limit(1);
+          if (photosData && photosData.length > 0) {
+            heroMap[prop.id] = photosData[0].photo_url;
+          }
+          
+          const { data: pricesData } = await supabase
+            .from("listings_tracker_prices")
+            .select("price")
+            .eq("property_id", prop.id)
+            .order("recorded_at", { ascending: false })
+            .limit(1);
+          if (pricesData && pricesData.length > 0) {
+            pricesMap[prop.id] = pricesData[0].price;
+          }
+        })
+      );
+      setHeroImages(heroMap);
+      setLatestPrices(pricesMap);
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
       setLoading(false);
     }
+    setLoading(false);
+  };
+
+  useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, supabase]);
+
+  const handleAddProperty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError("");
+    if (!newLink.trim() || !newPrice.trim()) {
+      setFormError("Both fields are required.");
+      return;
+    }
+    const priceNum = Number(newPrice.replace(/[^\d.]/g, ""));
+    if (isNaN(priceNum) || priceNum <= 0) {
+      setFormError("Price must be a positive number.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // 1. Get admin_id for this code
+      const { data: codeRows, error: codeErr } = await supabase
+        .from("listings_tracker_access_codes")
+        .select("created_by, code")
+        .eq("code", code)
+        .limit(1)
+        .maybeSingle();
+      if (codeErr || !codeRows) {
+        setFormError("Could not find admin for this code.");
+        setSubmitting(false);
+        return;
+      }
+      const admin_id = codeRows.created_by;
+      // 2. Insert property
+      const { data: prop, error: propErr } = await supabase
+        .from("listings_tracker_properties")
+        .insert({
+          admin_id,
+          listing_link: newLink,
+          listing_price: priceNum,
+        })
+        .select()
+        .maybeSingle();
+      if (propErr || !prop) {
+        setFormError("Failed to add property.");
+        setSubmitting(false);
+        return;
+      }
+      // 3. Insert access code for new property
+      const { error: codeInsertErr } = await supabase
+        .from("listings_tracker_access_codes")
+        .insert({
+          property_id: prop.id,
+          code,
+          created_by: admin_id,
+        });
+      if (codeInsertErr) {
+        setFormError("Failed to link property to code.");
+        setSubmitting(false);
+        return;
+      }
+      setNewLink("");
+      setNewPrice("");
+      await loadData();
+    } catch (err) {
+      setFormError("Something went wrong. Please try again.");
+    }
+    setSubmitting(false);
+  };
 
   if (loading) {
     return (
@@ -127,10 +197,42 @@ export default function UserProperties() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem" }}>
-        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-sem-mb-600">
-          <dl-heading level={1}>Listings</dl-heading>
+        <div style={{ marginBottom: "2rem", display: "flex", gap: "1rem", alignItems: "flex-end" }}>
+          <div style={{ flex: 2 }}>
+            <dl-input
+              label="Listing Link"
+              placeholder="https://www.zillow.com/..."
+              value={newLink}
+              onInput={(e: any) => setNewLink(getEventValue(e))}
+              required
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <dl-input
+              label="Listing Price"
+              placeholder="450000"
+              value={newPrice}
+              onInput={(e: any) => setNewPrice(getEventValue(e))}
+              required
+              type="number"
+              min="0"
+            />
+          </div>
+          <dl-button
+            variant="primary"
+            size="md"
+            disabled={submitting}
+            onClick={async (e: any) => {
+              e.preventDefault?.();
+              await handleAddProperty(e as any);
+            }}
+          >
+            {submitting ? "Adding..." : "Add Listing"}
+          </dl-button>
         </div>
-
+        {formError && (
+          <dl-text color="danger" style={{ marginBottom: "1rem" }}>{formError}</dl-text>
+        )}
         {properties.length === 0 ? (
           <dl-card>
             <div style={{ padding: "2rem", textAlign: "center" }}>
@@ -156,10 +258,29 @@ export default function UserProperties() {
                 )}
                 <div style={{ padding: "1.5rem" }}>
                   <dl-heading level={3}>{prop.street_address || "No address"}</dl-heading>
-                  <dl-text color="secondary" size="300" style={{ marginTop: "0.5rem" }}>
-                    MLS: {prop.mls_number || "N/A"} | Listed at: ${prop.listing_price}
-                    {prop.sold_price && ` | Sold: $${prop.sold_price}`}
-                  </dl-text>
+                  <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+                    <dl-text color="secondary" size="300">
+                      MLS: {prop.mls_number || "N/A"} | Listed at: ${prop.listing_price}
+                    </dl-text>
+                    {latestPrices[prop.id] && latestPrices[prop.id] !== prop.listing_price && (
+                      <div style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        padding: "0.5rem 1rem",
+                        backgroundColor: latestPrices[prop.id] > prop.listing_price ? "#dcfce7" : "#fecaca",
+                        borderRadius: "9999px",
+                        border: `2px solid ${latestPrices[prop.id] > prop.listing_price ? "#22c55e" : "#f87171"}`,
+                      }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: "600", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b", textTransform: "uppercase" }}>
+                          {latestPrices[prop.id] > prop.listing_price ? "↑ Increased" : "↓ Reduced"}
+                        </span>
+                        <span style={{ fontSize: "0.9rem", fontWeight: "700", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b" }}>
+                          ${latestPrices[prop.id]}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                   {prop.notes && (
                     <dl-text size="300" style={{ marginTop: "0.5rem" }}>
                       {prop.notes}
