@@ -23,6 +23,9 @@ export default function PropertyDetail() {
   const [editingAddress, setEditingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState("");
   const [savingAddress, setSavingAddress] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [newNotes, setNewNotes] = useState("");
+  const [savingNotes, setSavingNotes] = useState(false);
   const router = useRouter();
   const params = useParams();
   const propertyId = params.id as string;
@@ -67,6 +70,7 @@ export default function PropertyDetail() {
 
         setProperty(prop);
         setNewAddress(prop.street_address || "");
+        setNewNotes(prop.notes || "");
 
         // Fetch prices
         const { data: pricesData } = await supabase
@@ -113,6 +117,25 @@ export default function PropertyDetail() {
       alert("Error updating address: " + err.message);
     } finally {
       setSavingAddress(false);
+    }
+  }
+
+  async function handleUpdateNotes() {
+    setSavingNotes(true);
+    try {
+      const { error } = await supabase
+        .from("listings_tracker_properties")
+        .update({ notes: newNotes })
+        .eq("id", propertyId);
+
+      if (error) throw error;
+
+      setProperty({ ...property!, notes: newNotes });
+      setEditingNotes(false);
+    } catch (err: any) {
+      alert("Error updating notes: " + err.message);
+    } finally {
+      setSavingNotes(false);
     }
   }
 
@@ -366,6 +389,74 @@ export default function PropertyDetail() {
             </div>
           </dl-card>
         )}
+
+        {/* Notes Section */}
+        <dl-card style={{ marginBottom: "2rem" }}>
+          <div style={{ padding: "1.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+              <dl-heading level={2} style={{ margin: 0 }}>
+                Notes
+              </dl-heading>
+              {!editingNotes && (
+                <dl-button variant="ghost" size="sm" onClick={() => setEditingNotes(true)}>
+                  {property.notes ? "Edit" : "Add"}
+                </dl-button>
+              )}
+            </div>
+            {editingNotes ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <textarea
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="Add any notes about this property..."
+                  style={{
+                    width: "100%",
+                    padding: "0.75rem",
+                    border: "1px solid #e0e0e0",
+                    borderRadius: "0.375rem",
+                    fontFamily: "inherit",
+                    fontSize: "0.875rem",
+                    resize: "vertical",
+                    minHeight: "120px",
+                  }}
+                />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <dl-button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleUpdateNotes}
+                    disabled={savingNotes}
+                    full-width
+                  >
+                    {savingNotes ? "Saving..." : "Save"}
+                  </dl-button>
+                  <dl-button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditingNotes(false);
+                      setNewNotes(property.notes || "");
+                    }}
+                    disabled={savingNotes}
+                    full-width
+                  >
+                    Cancel
+                  </dl-button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {property.notes ? (
+                  <dl-text style={{ whiteSpace: "pre-wrap", wordWrap: "break-word" }}>
+                    {property.notes}
+                  </dl-text>
+                ) : (
+                  <dl-text color="secondary">No notes yet.</dl-text>
+                )}
+              </div>
+            )}
+          </div>
+        </dl-card>
 
         {/* Photos Section */}
         <dl-card style={{ marginBottom: "2rem" }}>
