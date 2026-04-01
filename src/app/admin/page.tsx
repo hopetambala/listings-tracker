@@ -11,6 +11,7 @@ export default function AdminAuth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -45,6 +46,23 @@ export default function AdminAuth() {
     setError("");
     setLoading(true);
 
+    // Forgot password flow
+    if (isForgotPassword) {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+
+      if (resetError) {
+        setLoading(false);
+        setError(resetError.message);
+        return;
+      }
+
+      setLoading(false);
+      setError("✓ Check your email for a password reset link.");
+      setEmail("");
+      return;
+    }
+
+    // Sign up flow
     if (isSignUp) {
       const { error: authError } = await supabase.auth.signUp({ email, password });
 
@@ -55,7 +73,7 @@ export default function AdminAuth() {
       }
 
       setLoading(false);
-      setError("Check your email to confirm your account, then sign in.");
+      setError("✓ Check your email to confirm your account, then sign in.");
       setEmail("");
       setPassword("");
       setIsSignUp(false);
@@ -79,7 +97,9 @@ export default function AdminAuth() {
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "24rem" }}>
         <div className="cl-dlite-text-center">
-          <dl-heading level={1}>Admin {isSignUp ? "Sign Up" : "Login"}</dl-heading>
+          <dl-heading level={1}>
+            {isForgotPassword ? "Reset Password" : `Admin ${isSignUp ? "Sign Up" : "Login"}`}
+          </dl-heading>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -91,14 +111,20 @@ export default function AdminAuth() {
               required
               onInput={(e: any) => setEmail(getEventValue(e))}
             />
-            <dl-input
-              type="password"
-              placeholder="Password"
-              value={password}
-              required
-              onInput={(e: any) => setPassword(getEventValue(e))}
-            />
-            {error && <dl-text size="300" color="tertiary">{error}</dl-text>}
+            {!isForgotPassword && (
+              <dl-input
+                type="password"
+                placeholder="Password"
+                value={password}
+                required
+                onInput={(e: any) => setPassword(getEventValue(e))}
+              />
+            )}
+            {error && (
+              <dl-text size="300" color={error.startsWith("✓") ? "primary" : "tertiary"}>
+                {error}
+              </dl-text>
+            )}
             <dl-button
               variant="primary"
               size="md"
@@ -106,15 +132,63 @@ export default function AdminAuth() {
               disabled={loading || isRedirecting || undefined}
               onClick={handleSubmit}
             >
-              {isRedirecting ? "Redirecting..." : loading ? "..." : isSignUp ? "Sign Up" : "Sign In"}
+              {isRedirecting
+                ? "Redirecting..."
+                : loading
+                ? "..."
+                : isForgotPassword
+                ? "Send Reset Email"
+                : isSignUp
+                ? "Sign Up"
+                : "Sign In"}
             </dl-button>
           </dl-stack>
         </form>
 
         <div className="cl-dlite-text-center cl-dlite-sem-mt-400">
-          <dl-button variant="ghost" size="sm" onClick={() => { setIsSignUp(!isSignUp); setError(""); }}>
-            {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
-          </dl-button>
+          {isForgotPassword ? (
+            <dl-button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsForgotPassword(false);
+                setError("");
+                setEmail("");
+                setPassword("");
+              }}
+            >
+              Back to Sign In
+            </dl-button>
+          ) : (
+            <>
+              <dl-button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError("");
+                  setEmail("");
+                  setPassword("");
+                }}
+              >
+                {isSignUp ? "Already have an account? Sign in" : "Need an account? Sign up"}
+              </dl-button>
+              <div className="cl-dlite-sem-mt-300">
+                <dl-button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setError("");
+                    setEmail("");
+                    setPassword("");
+                  }}
+                >
+                  Forgot password?
+                </dl-button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="cl-dlite-text-center cl-dlite-sem-mt-600">

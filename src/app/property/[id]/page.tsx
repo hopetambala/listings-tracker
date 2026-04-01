@@ -17,7 +17,7 @@ export default function PropertyDetail() {
   const [prices, setPrices] = useState<Price[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [newPrice, setNewPrice] = useState("");
-  const [fileInput, setFileInput] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
@@ -119,52 +119,65 @@ export default function PropertyDetail() {
   }
 
   async function handleFileChange(e: any) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFileInput(file);
-    }
+    const files = Array.from(e.target.files || []) as File[];
+    setSelectedFiles(files);
   }
 
-  async function handleUploadPhoto() {
-    if (!fileInput) {
-      alert("Please select a file");
+  async function handleUploadPhotos() {
+    if (selectedFiles.length === 0) {
+      alert("Please select at least one file");
       return;
     }
 
     setUploading(true);
     try {
-      const filename = `${propertyId}/${Date.now()}-${fileInput.name}`;
+      const uploadedPhotos: Photo[] = [];
 
-      const { error: uploadError } = await supabase.storage
-        .from("listings-tracker-photos")
-        .upload(filename, fileInput);
+      // Upload all files
+      for (const file of selectedFiles) {
+        const filename = `${propertyId}/${Date.now()}-${Math.random()}-${file.name}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabase.storage
+          .from("listings-tracker-photos")
+          .upload(filename, file);
 
-      // Get public URL
-      const { data } = supabase.storage
-        .from("listings-tracker-photos")
-        .getPublicUrl(filename);
+        if (uploadError) {
+          console.error("Storage upload error:", uploadError);
+          throw new Error(`Storage error: ${uploadError.message}`);
+        }
 
-      // Insert photo record
-      const { error: dbError } = await supabase.from("listings_tracker_photos").insert({
-        property_id: propertyId,
-        photo_url: data.publicUrl,
-        display_order: photos.length,
-      });
+        // Get public URL
+        const { data } = supabase.storage
+          .from("listings-tracker-photos")
+          .getPublicUrl(filename);
 
-      if (dbError) throw dbError;
+        // Insert photo record
+        const { data: photoRecord, error: dbError } = await supabase
+          .from("listings_tracker_photos")
+          .insert({
+            property_id: propertyId,
+            photo_url: data.publicUrl,
+            display_order: photos.length + uploadedPhotos.length,
+          })
+          .select()
+          .single();
 
-      // Reload photos
-      const { data: photosData } = await supabase
-        .from("listings_tracker_photos")
-        .select("*")
-        .eq("property_id", propertyId)
-        .order("display_order", { ascending: true });
-      setPhotos(photosData || []);
-      setFileInput(null);
+        if (dbError) {
+          console.error("DB insert error:", dbError);
+          throw new Error(`Database error: ${dbError.message}`);
+        }
+        if (photoRecord) uploadedPhotos.push(photoRecord);
+      }
+
+      // Update photos list
+      setPhotos([...photos, ...uploadedPhotos]);
+      setSelectedFiles([]);
+
+      // Reset file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
     } catch (err: any) {
-      alert("Error uploading photo: " + err.message);
+      alert("Error uploading photos: " + err.message);
     } finally {
       setUploading(false);
     }
@@ -294,12 +307,28 @@ export default function PropertyDetail() {
             <dl-heading level={2} style={{ marginBottom: "1rem" }}>
               Photos
             </dl-heading>
-            <div style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem" }}>
-              <dl-input type="file" accept="image/*" onChange={handleFileChange} />
+            <div style={{ marginBottom: "1.5rem", display: "flex", gap: "1rem", alignItems: "center" }}>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{
+                  padding: "0.5rem",
+                  border: "1px solid #e0e0e0",
+                  borderRadius: "0.375rem",
+                  flex: 1,
+                }}
+              />
+              {selectedFiles.length > 0 && (
+                <dl-text size="300" color="secondary">
+                  {selectedFiles.length} file{selectedFiles.length !== 1 ? "s" : ""} selected
+                </dl-text>
+              )}
               <dl-button
                 variant="primary"
-                disabled={uploading || !fileInput || undefined}
-                onClick={handleUploadPhoto}
+                disabled={uploading || selectedFiles.length === 0 || undefined}
+                onClick={handleUploadPhotos}
               >
                 {uploading ? "Uploading..." : "Upload"}
               </dl-button>
