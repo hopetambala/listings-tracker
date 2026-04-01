@@ -8,10 +8,12 @@ import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
+type Photo = Database["public"]["Tables"]["listings_tracker_photos"]["Row"];
 
 export default function UserProperties() {
   const [code, setCode] = useState("");
   const [properties, setProperties] = useState<Property[]>([]);
+  const [heroImages, setHeroImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
@@ -63,6 +65,18 @@ export default function UserProperties() {
         }
 
         setProperties([prop]);
+
+        // Fetch first photo for the property (hero image)
+        const { data: photosData } = await supabase
+          .from("listings_tracker_photos")
+          .select("photo_url")
+          .eq("property_id", prop.id)
+          .order("display_order", { ascending: true })
+          .limit(1);
+
+        if (photosData && photosData.length > 0) {
+          setHeroImages({ [prop.id]: photosData[0].photo_url });
+        }
       } catch (err) {
         router.push("/");
       }
@@ -97,6 +111,19 @@ export default function UserProperties() {
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {properties.map((prop) => (
               <dl-card key={prop.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/property/${prop.id}`)}>
+                {heroImages[prop.id] && (
+                  <img
+                    src={heroImages[prop.id]}
+                    alt={prop.street_address || "Property"}
+                    style={{
+                      width: "100%",
+                      height: "220px",
+                      objectFit: "cover",
+                      display: "block",
+                      borderRadius: "var(--tk-dlite-semantic-border-radius-md) var(--tk-dlite-semantic-border-radius-md) 0 0",
+                    }}
+                  />
+                )}
                 <div style={{ padding: "1.5rem" }}>
                   <dl-heading level={3}>{prop.street_address || "No address"}</dl-heading>
                   <dl-text color="secondary" size="300" style={{ marginTop: "0.5rem" }}>
