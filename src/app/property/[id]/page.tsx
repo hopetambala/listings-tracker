@@ -26,6 +26,8 @@ export default function PropertyDetail() {
   const [editingNotes, setEditingNotes] = useState(false);
   const [newNotes, setNewNotes] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const router = useRouter();
   const params = useParams();
   const propertyId = params.id as string;
@@ -233,6 +235,19 @@ export default function PropertyDetail() {
       setUploading(false);
     }
   }
+
+  const openGallery = (index: number) => {
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  };
+
+  const nextPhoto = () => {
+    setGalleryIndex((prev) => (prev + 1) % photos.length);
+  };
+
+  const prevPhoto = () => {
+    setGalleryIndex((prev) => (prev - 1 + photos.length) % photos.length);
+  };
 
   if (loading) {
     return (
@@ -496,14 +511,26 @@ export default function PropertyDetail() {
               <dl-text color="secondary">No photos yet.</dl-text>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1rem" }}>
-                {photos.map((photo) => (
-                  <a key={photo.id} href={photo.photo_url} target="_blank" rel="noopener noreferrer" style={{ cursor: "pointer" }}>
+                {photos.map((photo, index) => (
+                  <div
+                    key={photo.id}
+                    onClick={() => openGallery(index)}
+                    style={{ cursor: "pointer", position: "relative", overflow: "hidden", borderRadius: "4px" }}
+                  >
                     <img
                       src={photo.photo_url}
                       alt="Property"
-                      style={{ width: "100%", height: "150px", objectFit: "cover", borderRadius: "4px" }}
+                      style={{
+                        width: "100%",
+                        height: "150px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                        transition: "transform 0.2s",
+                      }}
+                      onMouseEnter={(e) => ((e.target as HTMLImageElement).style.transform = "scale(1.05)")}
+                      onMouseLeave={(e) => ((e.target as HTMLImageElement).style.transform = "scale(1)")}
                     />
-                  </a>
+                  </div>
                 ))}
               </div>
             )}
@@ -516,6 +543,115 @@ export default function PropertyDetail() {
           </dl-button>
         </div>
       </div>
+
+      {/* Photo Gallery Modal */}
+      {galleryOpen && photos.length > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.9)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+          onClick={() => setGalleryOpen(false)}
+        >
+          <div
+            style={{
+              position: "relative",
+              maxWidth: "90vw",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setGalleryOpen(false)}
+              style={{
+                position: "absolute",
+                top: "-2.5rem",
+                right: 0,
+                background: "none",
+                border: "none",
+                color: "white",
+                fontSize: "2rem",
+                cursor: "pointer",
+                padding: "0.5rem",
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Image */}
+            <img
+              src={photos[galleryIndex].photo_url}
+              alt={`Photo ${galleryIndex + 1}`}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "calc(90vh - 80px)",
+                objectFit: "contain",
+                borderRadius: "0.5rem",
+              }}
+            />
+
+            {/* Controls */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "2rem",
+                marginTop: "1.5rem",
+                color: "white",
+              }}
+            >
+              <button
+                onClick={prevPhoto}
+                style={{
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "1px solid white",
+                  color: "white",
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                  hover: { background: "rgba(255, 255, 255, 0.3)" },
+                }}
+              >
+                ← Prev
+              </button>
+
+              <div style={{ fontSize: "0.875rem" }}>
+                {galleryIndex + 1} of {photos.length}
+              </div>
+
+              <button
+                onClick={nextPhoto}
+                style={{
+                  background: "rgba(255, 255, 255, 0.2)",
+                  border: "1px solid white",
+                  color: "white",
+                  padding: "0.75rem 1.5rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
