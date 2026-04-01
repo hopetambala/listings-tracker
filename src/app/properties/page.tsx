@@ -306,7 +306,7 @@ export default function UserProperties() {
                       }}
                       style={{ marginTop: "0.75rem" }}
                     >
-                      View Listing ↗
+                      View Real Estate Listing ↗
                     </dl-button>
                   )}
                   {prop.notes && (
