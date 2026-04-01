@@ -1,0 +1,62 @@
+/* listings-tracker design system styles
+ * App-specific compositions using:
+ *   - <dl-*> web components from web-components-dlite
+ *   - .cl-dlite-* CSS classes from style-dictionary-dlite-tokens
+ *   - --tk-dlite-* CSS custom properties from style-dictionary-dlite-tokens
+ */
+
+/* ===== PAGE LAYOUTS ===== */
+.page {
+  min-height: 100vh;
+  padding: var(--tk-dlite-semantic-spacing-400);
+}
+
+.page--centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--tk-dlite-semantic-spacing-400);
+}
+
+.page--narrow {
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page--wide {
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page--full {
+  max-width: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ===== GRID ===== */
+.grid-2 {
+  display: grid;
+  gap: var(--tk-dlite-semantic-spacing-300);
+}
+
+@media (min-width: 640px) {
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+.grid-responsive {
+  display: grid;
+  gap: var(--tk-dlite-semantic-spacing-200);
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 640px) {
+  .grid-responsive { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (min-width: 768px) {
+  .grid-responsive { grid-template-columns: repeat(4, 1fr); }
+}
