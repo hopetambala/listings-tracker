@@ -247,7 +247,17 @@ export default function UserProperties() {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {properties.map((prop) => (
-              <dl-card key={prop.id} style={{ cursor: "pointer" }} onClick={() => router.push(`/property/${prop.id}`)}>
+              <dl-card key={prop.id} style={{ cursor: "pointer" }}
+                onClick={e => {
+                  // Only navigate if the click is not on a link/button
+                  if (
+                    e.target instanceof HTMLElement &&
+                    (e.target.closest('a') || e.target.closest('button'))
+                  ) {
+                    return;
+                  }
+                  router.push(`/property/${prop.id}`);
+                }}>
                 {heroImages[prop.id] && (
                   <img
                     src={heroImages[prop.id]}
@@ -287,23 +297,17 @@ export default function UserProperties() {
                     )}
                   </div>
                   {prop.listing_link && (
-                    <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid #e0e0e0" }}>
-                      <a 
-                        href={prop.listing_link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{
-                          color: "var(--tk-dlite-semantic-color-primary-base)",
-                          textDecoration: "none",
-                          fontSize: "0.875rem",
-                          fontWeight: "500",
-                          wordBreak: "break-all",
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {prop.listing_link}
-                      </a>
-                    </div>
+                    <dl-button
+                      variant="primary"
+                      size="sm"
+                      onClick={e => {
+                        e.stopPropagation();
+                        window.open(prop.listing_link, '_blank');
+                      }}
+                      style={{ marginTop: "0.75rem" }}
+                    >
+                      View Listing ↗
+                    </dl-button>
                   )}
                   {prop.notes && (
                     <dl-text size="300" style={{ marginTop: "0.5rem" }}>
