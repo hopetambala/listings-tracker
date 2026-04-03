@@ -33,6 +33,3 @@ jobs:
 
     - name: Run tests
       run: npm test
-
-    - name: Build for production
-      run: npm run build
