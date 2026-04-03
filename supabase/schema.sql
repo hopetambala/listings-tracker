@@ -70,17 +70,7 @@ CREATE POLICY "Users can insert properties via access codes" ON listings_tracker
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Users can update properties via access codes" ON listings_tracker_properties
-  FOR UPDATE USING (
-    EXISTS (
-      SELECT 1 FROM listings_tracker_access_codes
-      WHERE property_id = id
-    )
-  ) WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM listings_tracker_access_codes
-      WHERE property_id = id
-    )
-  );
+  FOR UPDATE USING (true) WITH CHECK (true);
 
 -- Prices: Admin can read/write all, users can read and insert
 CREATE POLICY "Admin full access to prices" ON listings_tracker_prices

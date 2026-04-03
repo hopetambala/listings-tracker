@@ -111,16 +111,20 @@ export default function PropertyDetail() {
 
     setSavingAddress(true);
     try {
-      const { error } = await supabase
+      console.log("Updating address for property:", propertyId, "New address:", newAddress);
+      const { data, error } = await supabase
         .from("listings_tracker_properties")
         .update({ street_address: newAddress })
         .eq("id", propertyId);
+
+      console.log("Update response:", { data, error });
 
       if (error) throw error;
 
       setProperty({ ...property!, street_address: newAddress });
       setEditingAddress(false);
     } catch (err: any) {
+      console.error("Full error details:", err);
       alert("Error updating address: " + err.message);
     } finally {
       setSavingAddress(false);
