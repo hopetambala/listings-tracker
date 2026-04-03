@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { formatPrice } from "@/lib/formatters";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Photo = Database["public"]["Tables"]["listings_tracker_photos"]["Row"];
@@ -277,7 +278,7 @@ export default function UserProperties() {
                   <dl-heading level={3}>{prop.street_address || "No address"}</dl-heading>
                   <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                     <dl-text color="secondary" size="300">
-                      MLS: {prop.mls_number || "N/A"} | Listed at: ${prop.listing_price}
+                      MLS: {prop.mls_number || "N/A"} | Listed at: ${formatPrice(prop.listing_price)}
                     </dl-text>
                     {latestPrices[prop.id] && latestPrices[prop.id] !== prop.listing_price && (
                       <div style={{
@@ -293,7 +294,7 @@ export default function UserProperties() {
                           {latestPrices[prop.id] > prop.listing_price ? "↑ Increased" : "↓ Reduced"}
                         </span>
                         <span style={{ fontSize: "0.9rem", fontWeight: "700", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b" }}>
-                          ${latestPrices[prop.id]}
+                          ${formatPrice(latestPrices[prop.id])}
                         </span>
                       </div>
                     )}

@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { formatPrice } from "@/lib/formatters";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Price = Database["public"]["Tables"]["listings_tracker_prices"]["Row"];
@@ -25,6 +26,9 @@ export default function PropertyDetail() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [newNotes, setNewNotes] = useState("");
+  const [editingLink, setEditingLink] = useState(false);
+  const [newLink, setNewLink] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -73,6 +77,7 @@ export default function PropertyDetail() {
         setProperty(prop);
         setNewAddress(prop.street_address || "");
         setNewNotes(prop.notes || "");
+        setNewLink(prop.listing_link || "");
 
         // Fetch prices
         const { data: pricesData } = await supabase
@@ -138,6 +143,30 @@ export default function PropertyDetail() {
       alert("Error updating notes: " + err.message);
     } finally {
       setSavingNotes(false);
+    }
+  }
+
+  async function handleUpdateLink() {
+    if (!newLink.trim()) {
+      alert("Please enter a valid URL");
+      return;
+    }
+
+    setSavingLink(true);
+    try {
+      const { error } = await supabase
+        .from("listings_tracker_properties")
+        .update({ listing_link: newLink })
+        .eq("id", propertyId);
+
+      if (error) throw error;
+
+      setProperty({ ...property!, listing_link: newLink });
+      setEditingLink(false);
+    } catch (err: any) {
+      alert("Error updating link: " + err.message);
+    } finally {
+      setSavingLink(false);
     }
   }
 
@@ -330,13 +359,13 @@ export default function PropertyDetail() {
               <div>
                 <dl-text size="300" color="secondary">Listed Price</dl-text>
                 <dl-text style={{ marginTop: "0.5rem" }}>
-                  ${property.listing_price}
+                  ${formatPrice(property.listing_price)}
                 </dl-text>
               </div>
               <div>
                 <dl-text size="300" color="secondary">Current Price</dl-text>
                 <dl-text style={{ marginTop: "0.5rem", fontSize: "1.2rem", fontWeight: "bold" }}>
-                  ${currentPrice}
+                  ${formatPrice(currentPrice)}
                 </dl-text>
               </div>
               <div>
@@ -350,12 +379,77 @@ export default function PropertyDetail() {
                   <div>
                     <dl-text size="300" color="secondary">Sold Price</dl-text>
                     <dl-text style={{ marginTop: "0.5rem" }}>
-                      ${property.sold_price}
+                      ${formatPrice(property.sold_price)}
                     </dl-text>
                   </div>
                 </>
               )}
             </div>
+          </div>
+        </dl-card>
+
+        {/* Listing Link Section */}
+        <dl-card style={{ marginBottom: "2rem" }}>
+          <div style={{ padding: "1.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+              <dl-heading level={2} style={{ margin: 0 }}>
+                Listing Link
+              </dl-heading>
+              {!editingLink && (
+                <dl-button variant="ghost" size="sm" onClick={() => setEditingLink(true)}>
+                  Edit
+                </dl-button>
+              )}
+            </div>
+            {editingLink ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                <dl-input
+                  label="URL"
+                  type="url"
+                  value={newLink}
+                  onInput={(e: any) => setNewLink(getEventValue(e))}
+                  placeholder="https://www.zillow.com/..."
+                  full-width
+                />
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <dl-button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleUpdateLink}
+                    disabled={savingLink}
+                    full-width
+                  >
+                    {savingLink ? "Saving..." : "Save"}
+                  </dl-button>
+                  <dl-button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditingLink(false);
+                      setNewLink(property.listing_link || "");
+                    }}
+                    disabled={savingLink}
+                    full-width
+                  >
+                    Cancel
+                  </dl-button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {property.listing_link ? (
+                  <dl-button
+                    variant="ghost"
+                    style={{ justifyContent: "flex-start", wordBreak: "break-all" }}
+                    onClick={() => window.open(property.listing_link, '_blank')}
+                  >
+                    {property.listing_link}
+                  </dl-button>
+                ) : (
+                  <dl-text color="secondary">No listing link yet.</dl-text>
+                )}
+              </div>
+            )}
           </div>
         </dl-card>
 
@@ -394,7 +488,7 @@ export default function PropertyDetail() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {prices.slice(0, 10).map((price, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #ddd" }}>
-                    <dl-text size="300">${price.price}</dl-text>
+                    <dl-text size="300">${formatPrice(price.price)}</dl-text>
                     <dl-text size="300" color="secondary">
                       {new Date(price.recorded_at).toLocaleDateString()}
                     </dl-text>

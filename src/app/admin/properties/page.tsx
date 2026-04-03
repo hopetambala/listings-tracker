@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
+import { formatPrice } from "@/lib/formatters";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
@@ -90,8 +91,8 @@ export default function AdminProperties() {
                     <div style={{ flex: 1 }}>
                       <dl-heading level={3}>{prop.street_address || "No address"}</dl-heading>
                       <dl-text color="secondary" size="300" style={{ marginTop: "0.5rem" }}>
-                        MLS: {prop.mls_number || "N/A"} | Listed: ${prop.listing_price}
-                        {prop.sold_price && ` | Sold: $${prop.sold_price}`}
+                        MLS: {prop.mls_number || "N/A"} | Listed: ${formatPrice(prop.listing_price)}
+                        {prop.sold_price && ` | Sold: $${formatPrice(prop.sold_price)}`}
                       </dl-text>
                       {prop.notes && (
                         <dl-text size="300" style={{ marginTop: "0.5rem" }}>
