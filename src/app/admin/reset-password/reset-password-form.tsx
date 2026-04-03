@@ -19,7 +19,7 @@ export default function ResetPasswordForm() {
     // Check if there's a recovery code in the URL
     const code = searchParams.get("code");
     if (!code) {
-       
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setError("Invalid reset link. Please use the email link to reset your password.");
     }
   }, [searchParams]);
