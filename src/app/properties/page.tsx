@@ -294,7 +294,7 @@ export default function UserProperties() {
                           {latestPrices[prop.id] > prop.listing_price ? "↑ Increased" : "↓ Reduced"}
                         </span>
                         <span style={{ fontSize: "0.9rem", fontWeight: "700", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b" }}>
-                          ${formatPrice(latestPrices[prop.id])}
+                          ${formatPrice(latestPrices[prop.id])} ({((latestPrices[prop.id] - prop.listing_price) / prop.listing_price * 100).toFixed(1)}%)
                         </span>
                       </div>
                     )}
