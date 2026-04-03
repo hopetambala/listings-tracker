@@ -202,39 +202,41 @@ export default function UserProperties() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
-        <div className="form-row" style={{ marginBottom: "2rem" }}>
-          <div style={{ flex: 2 }}>
-            <dl-input
-              label="Listing Link"
-              placeholder="https://www.zillow.com/..."
-              value={newLink}
-              onInput={(e: any) => setNewLink(getEventValue(e))}
-              required
-            />
+        <form onSubmit={handleAddProperty}>
+          <div className="form-row" style={{ marginBottom: "2rem" }}>
+            <div style={{ flex: 2 }}>
+              <dl-input
+                label="Listing Link"
+                placeholder="https://www.zillow.com/..."
+                value={newLink}
+                onInput={(e: any) => setNewLink(getEventValue(e))}
+                required
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <dl-input
+                label="Listing Price"
+                placeholder="450000"
+                value={newPrice}
+                onInput={(e: any) => setNewPrice(getEventValue(e))}
+                required
+                type="number"
+                min="0"
+              />
+            </div>
+            <dl-button
+              variant="primary"
+              size="md"
+              disabled={submitting}
+              onClick={async (e: any) => {
+                e.preventDefault?.();
+                await handleAddProperty(e as any);
+              }}
+            >
+              {submitting ? "Adding..." : "Add Listing"}
+            </dl-button>
           </div>
-          <div style={{ flex: 1 }}>
-            <dl-input
-              label="Listing Price"
-              placeholder="450000"
-              value={newPrice}
-              onInput={(e: any) => setNewPrice(getEventValue(e))}
-              required
-              type="number"
-              min="0"
-            />
-          </div>
-          <dl-button
-            variant="primary"
-            size="md"
-            disabled={submitting}
-            onClick={async (e: any) => {
-              e.preventDefault?.();
-              await handleAddProperty(e as any);
-            }}
-          >
-            {submitting ? "Adding..." : "Add Listing"}
-          </dl-button>
-        </div>
+        </form>
         {formError && (
           <dl-text color="danger" style={{ marginBottom: "1rem" }}>{formError}</dl-text>
         )}
