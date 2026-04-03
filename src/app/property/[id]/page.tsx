@@ -718,7 +718,6 @@ export default function PropertyDetail() {
                   borderRadius: "0.375rem",
                   cursor: "pointer",
                   fontSize: "1rem",
-                  hover: { background: "rgba(255, 255, 255, 0.3)" },
                 }}
               >
                 ← Prev

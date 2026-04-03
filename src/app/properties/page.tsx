@@ -251,7 +251,7 @@ export default function UserProperties() {
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {properties.map((prop) => (
               <dl-card key={prop.id} style={{ cursor: "pointer" }}
-                onClick={e => {
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
                   // Only navigate if the click is not on a link/button
                   if (
                     e.target instanceof HTMLElement &&
@@ -303,7 +303,7 @@ export default function UserProperties() {
                     <dl-button
                       variant="primary"
                       size="sm"
-                      onClick={e => {
+                      onClick={(e: React.MouseEvent<HTMLElement>) => {
                         e.stopPropagation();
                         window.open(prop.listing_link, '_blank');
                       }}
