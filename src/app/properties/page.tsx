@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { formatPrice } from "@/lib/formatters";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Photo = Database["public"]["Tables"]["listings_tracker_photos"]["Row"];
@@ -202,39 +203,41 @@ export default function UserProperties() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
-        <div className="form-row" style={{ marginBottom: "2rem" }}>
-          <div style={{ flex: 2 }}>
-            <dl-input
-              label="Listing Link"
-              placeholder="https://www.zillow.com/..."
-              value={newLink}
-              onInput={(e: any) => setNewLink(getEventValue(e))}
-              required
-            />
+        <form onSubmit={handleAddProperty}>
+          <div className="form-row" style={{ marginBottom: "2rem" }}>
+            <div style={{ flex: 2 }}>
+              <dl-input
+                label="Listing Link"
+                placeholder="https://www.zillow.com/..."
+                value={newLink}
+                onInput={(e: any) => setNewLink(getEventValue(e))}
+                required
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <dl-input
+                label="Listing Price"
+                placeholder="450000"
+                value={newPrice}
+                onInput={(e: any) => setNewPrice(getEventValue(e))}
+                required
+                type="number"
+                min="0"
+              />
+            </div>
+            <dl-button
+              variant="primary"
+              size="md"
+              disabled={submitting}
+              onClick={async (e: any) => {
+                e.preventDefault?.();
+                await handleAddProperty(e as any);
+              }}
+            >
+              {submitting ? "Adding..." : "Add Listing"}
+            </dl-button>
           </div>
-          <div style={{ flex: 1 }}>
-            <dl-input
-              label="Listing Price"
-              placeholder="450000"
-              value={newPrice}
-              onInput={(e: any) => setNewPrice(getEventValue(e))}
-              required
-              type="number"
-              min="0"
-            />
-          </div>
-          <dl-button
-            variant="primary"
-            size="md"
-            disabled={submitting}
-            onClick={async (e: any) => {
-              e.preventDefault?.();
-              await handleAddProperty(e as any);
-            }}
-          >
-            {submitting ? "Adding..." : "Add Listing"}
-          </dl-button>
-        </div>
+        </form>
         {formError && (
           <dl-text color="danger" style={{ marginBottom: "1rem" }}>{formError}</dl-text>
         )}
@@ -248,7 +251,7 @@ export default function UserProperties() {
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {properties.map((prop) => (
               <dl-card key={prop.id} style={{ cursor: "pointer" }}
-                onClick={e => {
+                onClick={(e: React.MouseEvent<HTMLElement>) => {
                   // Only navigate if the click is not on a link/button
                   if (
                     e.target instanceof HTMLElement &&
@@ -275,7 +278,7 @@ export default function UserProperties() {
                   <dl-heading level={3}>{prop.street_address || "No address"}</dl-heading>
                   <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                     <dl-text color="secondary" size="300">
-                      MLS: {prop.mls_number || "N/A"} | Listed at: ${prop.listing_price}
+                      MLS: {prop.mls_number || "N/A"} | Listed at: ${formatPrice(prop.listing_price)}
                     </dl-text>
                     {latestPrices[prop.id] && latestPrices[prop.id] !== prop.listing_price && (
                       <div style={{
@@ -291,7 +294,7 @@ export default function UserProperties() {
                           {latestPrices[prop.id] > prop.listing_price ? "↑ Increased" : "↓ Reduced"}
                         </span>
                         <span style={{ fontSize: "0.9rem", fontWeight: "700", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b" }}>
-                          ${latestPrices[prop.id]}
+                          ${formatPrice(latestPrices[prop.id])} ({((latestPrices[prop.id] - prop.listing_price) / prop.listing_price * 100).toFixed(1)}%)
                         </span>
                       </div>
                     )}
@@ -300,7 +303,7 @@ export default function UserProperties() {
                     <dl-button
                       variant="primary"
                       size="sm"
-                      onClick={e => {
+                      onClick={(e: React.MouseEvent<HTMLElement>) => {
                         e.stopPropagation();
                         window.open(prop.listing_link, '_blank');
                       }}

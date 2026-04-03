@@ -66,6 +66,12 @@ CREATE POLICY "Public read properties via access codes" ON listings_tracker_prop
     )
   );
 
+CREATE POLICY "Users can insert properties via access codes" ON listings_tracker_properties
+  FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can update properties via access codes" ON listings_tracker_properties
+  FOR UPDATE USING (true) WITH CHECK (true);
+
 -- Prices: Admin can read/write all, users can read and insert
 CREATE POLICY "Admin full access to prices" ON listings_tracker_prices
   FOR ALL USING (
@@ -119,6 +125,9 @@ CREATE POLICY "Users can insert photos" ON listings_tracker_photos
 -- Access codes: Admin only for write, public read by code value
 CREATE POLICY "Admin full access to codes" ON listings_tracker_access_codes
   FOR ALL USING (auth.uid() = created_by) WITH CHECK (auth.uid() = created_by);
+
+CREATE POLICY "Users can insert codes when adding properties" ON listings_tracker_access_codes
+  FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Public read access codes by code value" ON listings_tracker_access_codes
   FOR SELECT USING (true);
