@@ -68,14 +68,25 @@ export default function UserProperties() {
       const pricesMap: Record<string, number> = {};
       await Promise.all(
         propsData.map(async (prop) => {
-          const { data: photosData } = await supabase
+          // Prefer the key photo; fall back to first by display_order
+          const { data: keyPhotoData } = await supabase
             .from("listings_tracker_photos")
             .select("photo_url")
             .eq("property_id", prop.id)
-            .order("display_order", { ascending: true })
+            .eq("is_key_photo", true)
             .limit(1);
-          if (photosData && photosData.length > 0) {
-            heroMap[prop.id] = photosData[0].photo_url;
+          if (keyPhotoData && keyPhotoData.length > 0) {
+            heroMap[prop.id] = keyPhotoData[0].photo_url;
+          } else {
+            const { data: photosData } = await supabase
+              .from("listings_tracker_photos")
+              .select("photo_url")
+              .eq("property_id", prop.id)
+              .order("display_order", { ascending: true })
+              .limit(1);
+            if (photosData && photosData.length > 0) {
+              heroMap[prop.id] = photosData[0].photo_url;
+            }
           }
           
           const { data: pricesData } = await supabase
@@ -294,7 +305,9 @@ export default function UserProperties() {
                           {latestPrices[prop.id] > prop.listing_price ? "↑ Increased" : "↓ Reduced"}
                         </span>
                         <span style={{ fontSize: "0.9rem", fontWeight: "700", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b" }}>
-                          ${formatPrice(latestPrices[prop.id])} ({((latestPrices[prop.id] - prop.listing_price) / prop.listing_price * 100).toFixed(1)}%)
+                          ${formatPrice(latestPrices[prop.id])}
+                          {" "}
+                          ({latestPrices[prop.id] > prop.listing_price ? "+" : "-"}${formatPrice(Math.abs(latestPrices[prop.id] - prop.listing_price))} / {((latestPrices[prop.id] - prop.listing_price) / prop.listing_price * 100).toFixed(1)}%)
                         </span>
                       </div>
                     )}

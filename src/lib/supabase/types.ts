@@ -53,6 +53,7 @@ export type Database = {
           uploaded_at: string;
           notes: string | null;
           display_order: number;
+          is_key_photo: boolean;
           created_at: string;
         };
         Insert: Omit<

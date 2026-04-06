@@ -34,8 +34,12 @@ CREATE TABLE IF NOT EXISTS listings_tracker_photos (
   uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   notes TEXT,
   display_order INTEGER DEFAULT 0,
+  is_key_photo BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration: add is_key_photo if table already exists
+ALTER TABLE listings_tracker_photos ADD COLUMN IF NOT EXISTS is_key_photo BOOLEAN DEFAULT FALSE;
 
 -- Access codes table
 CREATE TABLE IF NOT EXISTS listings_tracker_access_codes (
