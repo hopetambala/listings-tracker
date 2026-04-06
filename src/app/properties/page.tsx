@@ -23,6 +23,7 @@ export default function UserProperties() {
   const supabase = createClient();
   const [newLink, setNewLink] = useState("");
   const [newPrice, setNewPrice] = useState("");
+  const [newAddress, setNewAddress] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
@@ -150,6 +151,7 @@ export default function UserProperties() {
           admin_id,
           listing_link: newLink,
           listing_price: priceNum,
+          ...(newAddress.trim() ? { street_address: newAddress.trim() } : {}),
         })
         .select()
         .maybeSingle();
@@ -173,6 +175,7 @@ export default function UserProperties() {
       }
       setNewLink("");
       setNewPrice("");
+      setNewAddress("");
       await loadData();
     } catch (err) {
       console.error("Error adding property:", err);
@@ -223,6 +226,14 @@ export default function UserProperties() {
                 value={newLink}
                 onInput={(e: any) => setNewLink(getEventValue(e))}
                 required
+              />
+            </div>
+            <div style={{ flex: 2 }}>
+              <dl-input
+                label="Address"
+                placeholder="123 Main St"
+                value={newAddress}
+                onInput={(e: any) => setNewAddress(getEventValue(e))}
               />
             </div>
             <div style={{ flex: 1 }}>
