@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * TDD tests for EditProperty — admin edit-property form
  *

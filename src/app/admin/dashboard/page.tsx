@@ -57,6 +57,7 @@ export default function AdminDashboard() {
       setLoading(false);
     };
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, supabase.auth]);
 
   async function handleSignOut() {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 export default function ResetPasswordForm() {
   const [newPassword, setNewPassword] = useState("");
@@ -111,14 +111,14 @@ export default function ResetPasswordForm() {
                 placeholder="New Password"
                 value={newPassword}
                 required
-                onInput={(e: any) => setNewPassword(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setNewPassword(getEventValue(e))}
               />
               <dl-input
                 type="password"
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 required
-                onInput={(e: any) => setConfirmPassword(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setConfirmPassword(getEventValue(e))}
               />
               {error && <dl-text size="300" color="tertiary">{error}</dl-text>}
               <dl-button variant="primary" size="md" full-width disabled={loading || undefined} onClick={handleResetPassword}>

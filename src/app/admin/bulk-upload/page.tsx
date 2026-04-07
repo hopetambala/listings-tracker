@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateCode } from "@/lib/api/code-utils";
 import { parseCSV, getCSVTemplate } from "@/lib/api/csv-parser";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 interface BulkResult {
   property_id: string;
@@ -19,7 +19,7 @@ interface BulkResult {
 }
 
 export default function BulkUpload() {
-  const [user, setUser] = useState<any>(null);
+  const [_user, setUser] = useState<any>(null);
   const [csvText, setCsvText] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -60,7 +60,7 @@ export default function BulkUpload() {
     const { data: existingProps } = await supabase
       .from("listings_tracker_properties")
       .select("listing_link")
-      .eq("admin_id", user.id);
+      .eq("admin_id", _user.id);
     const existingUrls = new Set((existingProps ?? []).map((p) => p.listing_link));
 
     try {
@@ -86,7 +86,7 @@ export default function BulkUpload() {
           const { data: propData, error: propError } = await supabase
             .from("listings_tracker_properties")
             .insert({
-              admin_id: user.id,
+              admin_id: _user.id,
               listing_link: row.listing_link,
               street_address: row.street_address || null,
               mls_number: row.mls_number || null,
@@ -100,7 +100,7 @@ export default function BulkUpload() {
 
           const { error: codeError } = await supabase
             .from("listings_tracker_access_codes")
-            .insert({ property_id: propData.id, code, created_by: user.id });
+            .insert({ property_id: propData.id, code, created_by: _user.id });
 
           if (codeError) throw codeError;
 
@@ -190,7 +190,7 @@ export default function BulkUpload() {
                 placeholder={getCSVTemplate()}
                 value={csvText}
                 style={{ marginTop: "0.5rem", minHeight: "200px", fontFamily: "monospace", fontSize: "0.875rem" }}
-                onInput={(e: any) => setCsvText(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setCsvText(getEventValue(e))}
               />
             </div>
 

@@ -47,6 +47,7 @@ export default function NewProperty() {
       setLoading(false);
     }
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, supabase.auth]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -68,7 +69,7 @@ export default function NewProperty() {
       const { data: propData, error: propError } = await supabase
         .from("listings_tracker_properties")
         .insert({
-          admin_id: user.id,
+          admin_id: _user.id,
           listing_link,
           street_address: street_address || null,
           mls_number: mls_number || null,
@@ -87,7 +88,7 @@ export default function NewProperty() {
         .insert({
           property_id: propData.id,
           code,
-          created_by: user.id,
+          created_by: _user.id,
         });
 
       if (codeError) throw codeError;

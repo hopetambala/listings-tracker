@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * TDD tests for BulkUpload — CSV upload form
  *

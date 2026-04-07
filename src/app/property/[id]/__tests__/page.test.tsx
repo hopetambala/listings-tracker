@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * TDD tests for PropertyDetail — inline edit forms + add-price + key-photo
  *
@@ -279,9 +280,6 @@ describe('PropertyDetail — inline notes edit', () => {
     await waitForLoad(container)
 
     // Find and click the "Edit" button in the Notes section
-    const notesSection = Array.from(container.querySelectorAll('dl-button')).find(
-      (b) => b.textContent === 'Edit' || b.textContent === 'Add'
-    )
     // There may be multiple Edit buttons; click the one nearest to the Notes heading
     const allEditBtns = Array.from(container.querySelectorAll('dl-button')).filter(
       (b) => b.textContent === 'Edit' || b.textContent === 'Add'

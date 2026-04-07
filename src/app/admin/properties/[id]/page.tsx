@@ -6,12 +6,12 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
 export default function EditProperty() {
-  const [user, setUser] = useState<any>(null);
+  const [_user, setUser] = useState<any>(null);
   const [property, setProperty] = useState<Property | null>(null);
   const [listing_link, setListing_link] = useState("");
   const [street_address, setStreet_address] = useState("");
@@ -114,7 +114,7 @@ export default function EditProperty() {
                 value={listing_link}
                 required
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setListing_link(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setListing_link(getEventValue(e))}
               />
             </div>
 
@@ -125,7 +125,7 @@ export default function EditProperty() {
                 placeholder="123 Main St"
                 value={street_address}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setStreet_address(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setStreet_address(getEventValue(e))}
               />
             </div>
 
@@ -136,7 +136,7 @@ export default function EditProperty() {
                 placeholder="MLS123456"
                 value={mls_number}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setMls_number(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setMls_number(getEventValue(e))}
               />
             </div>
 
@@ -148,7 +148,7 @@ export default function EditProperty() {
                 value={listing_price}
                 required
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setListing_price(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setListing_price(getEventValue(e))}
               />
             </div>
 
@@ -159,7 +159,7 @@ export default function EditProperty() {
                 placeholder="425000"
                 value={sold_price}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setSold_price(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setSold_price(getEventValue(e))}
               />
             </div>
 
@@ -183,7 +183,7 @@ export default function EditProperty() {
                 placeholder="Any additional notes..."
                 value={notes}
                 style={{ marginTop: "0.5rem", minHeight: "100px" }}
-                onInput={(e: any) => setNotes(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setNotes(getEventValue(e))}
               />
             </div>
 
