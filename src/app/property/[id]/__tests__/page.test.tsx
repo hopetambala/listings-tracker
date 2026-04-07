@@ -253,19 +253,21 @@ describe('PropertyDetail — inline address edit', () => {
   })
 
   // ── RED: empty address guard missing → blank address stored
-  it('shows an alert when address is saved empty', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+  it('shows an inline error when address is saved empty', async () => {
     const { container } = render(<PropertyDetail />)
     await waitForLoad(container)
 
     clickByText(container, 'Edit')
 
-    // Clear the input
     const addressInput = container.querySelector('dl-input[label="Address"]')!
     fireInput(addressInput, '')
     clickByText(container, 'Save')
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled())
+    await waitFor(() => {
+      expect(container.textContent).toMatch(/address cannot be empty/i)
+    })
+    // Supabase update should not be called for an empty address
+    expect(propChain.update).not.toHaveBeenCalled()
   })
 })
 
@@ -302,12 +304,12 @@ describe('PropertyDetail — inline notes edit', () => {
 describe('PropertyDetail — key photo', () => {
 
   // ── RED: photos not rendered → no key photo button visible
-  it('renders a "Set as key photo" button for non-key photos', async () => {
+  it('renders a "Set key" button for non-key photos', async () => {
     const { container } = render(<PropertyDetail />)
     await waitForLoad(container)
 
     await waitFor(() => {
-      expect(container.textContent).toMatch(/Set as key photo/i)
+      expect(container.textContent).toMatch(/Set key/i)
     })
   })
 
@@ -317,10 +319,10 @@ describe('PropertyDetail — key photo', () => {
     await waitForLoad(container)
 
     await waitFor(() =>
-      expect(container.textContent).toMatch(/Set as key photo/i)
+      expect(container.textContent).toMatch(/Set key/i)
     )
 
-    clickByText(container, 'Set as key photo')
+    clickByText(container, 'Set key')
 
     await waitFor(() => {
       expect(photosChain.update).toHaveBeenCalledWith({ is_key_photo: true })
@@ -333,10 +335,10 @@ describe('PropertyDetail — key photo', () => {
     await waitForLoad(container)
 
     await waitFor(() =>
-      expect(container.textContent).toMatch(/Set as key photo/i)
+      expect(container.textContent).toMatch(/Set key/i)
     )
 
-    clickByText(container, 'Set as key photo')
+    clickByText(container, 'Set key')
 
     await waitFor(() => {
       // First update clears all key photos for the property

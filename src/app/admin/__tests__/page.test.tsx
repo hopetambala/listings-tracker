@@ -177,7 +177,10 @@ describe('AdminAuth — forgot-password form', () => {
     fireEvent.submit(container.querySelector('form')!)
 
     await waitFor(() =>
-      expect(mockResetPassword).toHaveBeenCalledWith('user@test.com')
+      expect(mockResetPassword).toHaveBeenCalledWith(
+        'user@test.com',
+        expect.objectContaining({ redirectTo: expect.any(String) })
+      )
     )
   })
 

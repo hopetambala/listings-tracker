@@ -275,7 +275,8 @@ export default function PropertyDetail() {
     setDeletingPhotoId(photo.id); setPhotoActionError("");
     try {
       const path = getStoragePath(photo.photo_url);
-      await supabase.storage.from("listings-tracker-photos").remove([path]);
+      const { error: storageError } = await supabase.storage.from("listings-tracker-photos").remove([path]);
+      if (storageError) throw new Error(`Storage error: ${storageError.message}`);
       const { error } = await supabase.from("listings_tracker_photos").delete().eq("id", photo.id);
       if (error) throw error;
       setPhotos(photos.filter((p) => p.id !== photo.id));
@@ -286,7 +287,8 @@ export default function PropertyDetail() {
   async function handleSetKeyPhoto(photoId: string) {
     setSettingKeyPhoto(true); setPhotoActionError("");
     try {
-      await supabase.from("listings_tracker_photos").update({ is_key_photo: false }).eq("property_id", propertyId);
+      const { error: clearError } = await supabase.from("listings_tracker_photos").update({ is_key_photo: false }).eq("property_id", propertyId);
+      if (clearError) throw clearError;
       const { error } = await supabase.from("listings_tracker_photos").update({ is_key_photo: true }).eq("id", photoId);
       if (error) throw error;
       setPhotos(photos.map((p) => ({ ...p, is_key_photo: p.id === photoId })));

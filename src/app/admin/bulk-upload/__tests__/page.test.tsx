@@ -31,10 +31,10 @@ function makeChain(result: { data: any; error: any }) {
   return chain
 }
 
-const mockPropChain = makeChain({
-  data: { id: 'bulk-prop-1' },
-  error: null,
-})
+// Insert chain: .insert().select().single() → returns a single property object
+const mockPropInsertChain = makeChain({ data: { id: 'bulk-prop-1' }, error: null })
+// Duplicate-check chain: .select().eq() resolves as an array (no .single())
+const mockPropSelectChain = makeChain({ data: [], error: null })
 const mockCodeChain = makeChain({ data: null, error: null })
 
 const supabaseInstance = {
@@ -44,7 +44,12 @@ const supabaseInstance = {
     ),
   },
   from: vi.fn((table: string) => {
-    if (table === 'listings_tracker_properties') return mockPropChain
+    if (table === 'listings_tracker_properties') {
+      // Return insert chain when .insert() is called, select chain otherwise
+      const chain = { ...mockPropSelectChain }
+      chain.insert = vi.fn(() => mockPropInsertChain)
+      return chain
+    }
     if (table === 'listings_tracker_access_codes') return mockCodeChain
     return makeChain({ data: null, error: null })
   }),
@@ -60,7 +65,11 @@ beforeEach(() => {
   mockPush.mockReset()
   supabaseInstance.auth.getUser.mockResolvedValue({ data: { user: { id: 'admin-1' } } })
   supabaseInstance.from.mockImplementation((table: string) => {
-    if (table === 'listings_tracker_properties') return mockPropChain
+    if (table === 'listings_tracker_properties') {
+      const chain = { ...mockPropSelectChain }
+      chain.insert = vi.fn(() => mockPropInsertChain)
+      return chain
+    }
     if (table === 'listings_tracker_access_codes') return mockCodeChain
     return makeChain({ data: null, error: null })
   })

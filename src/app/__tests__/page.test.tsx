@@ -20,11 +20,22 @@ vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
 }))
 
+// Supabase chain: .from().select().eq().limit() → returns a valid code by default
+const mockLimit = vi.fn().mockResolvedValue({ data: [{ id: 'code-1' }], error: null })
+const mockEq    = vi.fn(() => ({ limit: mockLimit }))
+const mockSelect = vi.fn(() => ({ eq: mockEq }))
+const mockFrom  = vi.fn(() => ({ select: mockSelect }))
+
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: () => ({ from: mockFrom }),
+}))
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
   vi.clearAllMocks()
   mockPush.mockReset()
+  mockLimit.mockResolvedValue({ data: [{ id: 'code-1' }], error: null })
   localStorage.clear()
 })
 
