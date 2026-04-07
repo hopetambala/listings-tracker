@@ -284,6 +284,7 @@ export default function UserProperties() {
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
               <div style={{ flex: "2 1 200px" }}>
                 <dl-input
+                  label="Listing Link"
                   type="url"
                   placeholder="Listing URL *"
                   value={newLink}
@@ -313,7 +314,7 @@ export default function UserProperties() {
               </dl-button>
             </div>
             {formError && (
-              <dl-text size="300" color="tertiary" style={{ display: "block", marginTop: "0.5rem" }}>
+              <dl-text size="300" color="danger" style={{ display: "block", marginTop: "0.5rem" }}>
                 {formError}
               </dl-text>
             )}

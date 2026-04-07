@@ -38,6 +38,9 @@ const mockPropInsertChain = makeChain({ data: { id: 'bulk-prop-1' }, error: null
 const mockPropSelectChain = makeChain({ data: [], error: null })
 const mockCodeChain = makeChain({ data: null, error: null })
 
+// Persistent insert spy — shared across all property chains so tests can inspect it
+const mockPropInsert = vi.fn(() => mockPropInsertChain)
+
 const supabaseInstance = {
   auth: {
     getUser: vi.fn(() =>
@@ -46,9 +49,9 @@ const supabaseInstance = {
   },
   from: vi.fn((table: string) => {
     if (table === 'listings_tracker_properties') {
-      // Return insert chain when .insert() is called, select chain otherwise
+      // Return a chain where .insert() delegates to the shared mockPropInsert spy
       const chain = { ...mockPropSelectChain }
-      chain.insert = vi.fn(() => mockPropInsertChain)
+      chain.insert = mockPropInsert
       return chain
     }
     if (table === 'listings_tracker_access_codes') return mockCodeChain
@@ -64,11 +67,32 @@ vi.mock('@/lib/api/code-utils', () => ({ generateCode: () => '1111' }))
 beforeEach(() => {
   vi.clearAllMocks()
   mockPush.mockReset()
+  // Re-wire mockPropInsert to return mockPropInsertChain after clearAllMocks
+  mockPropInsert.mockReturnValue(mockPropInsertChain)
+  // Restore chain methods on mockPropInsertChain after clearAllMocks
+  for (const m of ['select', 'eq', 'in', 'order', 'limit', 'update']) {
+    mockPropInsertChain[m] = vi.fn(() => mockPropInsertChain)
+  }
+  mockPropInsertChain.single = vi.fn(() => Promise.resolve({ data: { id: 'bulk-prop-1' }, error: null }))
+  mockPropInsertChain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ data: { id: 'bulk-prop-1' }, error: null }).then(resolve, reject)
+  // Restore mockPropSelectChain methods after clearAllMocks
+  for (const m of ['select', 'eq', 'in', 'order', 'limit', 'update']) {
+    mockPropSelectChain[m] = vi.fn(() => mockPropSelectChain)
+  }
+  mockPropSelectChain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ data: [], error: null }).then(resolve, reject)
+  // Restore mockCodeChain methods after clearAllMocks
+  for (const m of ['select', 'eq', 'in', 'order', 'limit', 'insert', 'update']) {
+    mockCodeChain[m] = vi.fn(() => mockCodeChain)
+  }
+  mockCodeChain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ data: null, error: null }).then(resolve, reject)
   supabaseInstance.auth.getUser.mockResolvedValue({ data: { user: { id: 'admin-1' } } })
   supabaseInstance.from.mockImplementation((table: string) => {
     if (table === 'listings_tracker_properties') {
       const chain = { ...mockPropSelectChain }
-      chain.insert = vi.fn(() => mockPropInsertChain)
+      chain.insert = mockPropInsert
       return chain
     }
     if (table === 'listings_tracker_access_codes') return mockCodeChain
@@ -154,7 +178,7 @@ describe('BulkUpload — CSV upload form', () => {
     clickByText(container, 'Upload Properties')
 
     await waitFor(() => {
-      expect(mockPropChain.insert).toHaveBeenCalledWith(
+      expect(mockPropInsert).toHaveBeenCalledWith(
         expect.objectContaining({
           admin_id: 'admin-1',
           listing_link: 'https://zillow.com/123-main',
@@ -193,7 +217,7 @@ describe('BulkUpload — CSV upload form', () => {
 
     await waitFor(() => {
       expect(container.textContent).toMatch(/upload complete/i)
-      expect(container.textContent).toMatch(/1 propert/i)
+      expect(container.textContent).toMatch(/1 created/i)
     })
   })
 

@@ -7,7 +7,12 @@ export type WcCheckedEvent = CustomEvent<{ checked: boolean }>;
 export type WcSelectedEvent = CustomEvent<{ selected: unknown }>;
 
 export function getEventValue(e: WcInputEvent): string {
-  return e?.detail?.value ?? (e?.target as HTMLInputElement)?.value ?? "";
+  return (
+    e?.detail?.value ??
+    (e as unknown as { nativeEvent?: { detail?: { value?: string } } })?.nativeEvent?.detail?.value ??
+    (e?.target as HTMLInputElement)?.value ??
+    ""
+  );
 }
 
 export function getEventChecked(e: WcCheckedEvent): boolean {

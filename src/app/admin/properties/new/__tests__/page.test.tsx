@@ -62,6 +62,24 @@ vi.mock('@/lib/api/code-utils', () => ({ generateCode: () => '9999' }))
 beforeEach(() => {
   vi.clearAllMocks()
   mockPush.mockReset()
+  // Re-wire chain methods on module-level chains after clearAllMocks
+  for (const m of ['select', 'eq', 'in', 'order', 'limit', 'insert', 'update']) {
+    mockPropertyChain[m] = vi.fn(() => mockPropertyChain)
+    mockCodesSelectChain[m] = vi.fn(() => mockCodesSelectChain)
+    mockCodesChain[m] = vi.fn(() => mockCodesChain)
+  }
+  mockPropertyChain.single = vi.fn(() => Promise.resolve({ data: { id: 'new-prop-id', listing_price: 450000 }, error: null }))
+  mockPropertyChain.maybeSingle = vi.fn(() => Promise.resolve({ data: { id: 'new-prop-id', listing_price: 450000 }, error: null }))
+  mockPropertyChain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ data: { id: 'new-prop-id', listing_price: 450000 }, error: null }).then(resolve, reject)
+  mockCodesSelectChain.single = vi.fn(() => Promise.resolve({ data: null, error: null }))
+  mockCodesSelectChain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }))
+  mockCodesSelectChain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ data: [], error: null }).then(resolve, reject)
+  mockCodesChain.single = vi.fn(() => Promise.resolve({ data: null, error: null }))
+  mockCodesChain.maybeSingle = vi.fn(() => Promise.resolve({ data: null, error: null }))
+  mockCodesChain.then = (resolve: any, reject: any) =>
+    Promise.resolve({ data: null, error: null }).then(resolve, reject)
   // Re-wire after clearAllMocks
   supabaseInstance.auth.getUser.mockResolvedValue({
     data: { user: { id: 'admin-1', email: 'admin@test.com' } },

@@ -202,14 +202,17 @@ function clickByText(container: HTMLElement, text: string) {
 describe('PropertyDetail — add price form', () => {
 
   // ── RED: empty submit calls supabase with NaN price
-  it('shows an alert when Add Price is clicked with empty input', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+  it('shows an inline error when Add Price is clicked with empty input', async () => {
     const { container } = render(<PropertyDetail />)
     await waitForLoad(container)
 
     clickByText(container, 'Add Price')
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled())
+    await waitFor(() => {
+      const errorEl = container.querySelector('dl-text[color="danger"]')
+      expect(errorEl).not.toBeNull()
+      expect(errorEl?.textContent).toMatch(/please enter a price/i)
+    })
   })
 
   // ── RED: insert not called → price never saved
