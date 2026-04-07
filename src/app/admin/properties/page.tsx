@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/formatters";
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
 export default function AdminProperties() {
-  const [user, setUser] = useState<any>(null);
+  const [_user, setUser] = useState<any>(null);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();

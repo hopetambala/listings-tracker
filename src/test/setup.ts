@@ -10,6 +10,9 @@ const DL_TAGS = [
   'dl-card',
   'dl-spinner',
   'dl-dialog',
+  'dl-textarea',
+  'dl-stack',
+  'dl-divider',
 ]
 
 for (const tag of DL_TAGS) {

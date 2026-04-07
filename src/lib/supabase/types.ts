@@ -16,6 +16,7 @@ export type Database = {
           listing_price: number;
           sold_price: number | null;
           notes: string | null;
+          status: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -53,6 +54,7 @@ export type Database = {
           uploaded_at: string;
           notes: string | null;
           display_order: number;
+          is_key_photo: boolean;
           created_at: string;
         };
         Insert: Omit<
@@ -80,9 +82,9 @@ export type Database = {
         >;
       };
     };
-    Views: {};
-    Functions: {};
-    Enums: {};
-    CompositeTypes: {};
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };

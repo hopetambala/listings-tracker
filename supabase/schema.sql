@@ -11,9 +11,16 @@ CREATE TABLE IF NOT EXISTS listings_tracker_properties (
   listing_price NUMERIC NOT NULL,
   sold_price NUMERIC,
   notes TEXT,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'sold', 'withdrawn')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration: add status if table already exists
+ALTER TABLE listings_tracker_properties ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'sold', 'withdrawn'));
+
+-- Migration: drop UNIQUE constraint on code to allow multiple properties per code
+ALTER TABLE listings_tracker_access_codes DROP CONSTRAINT IF EXISTS listings_tracker_access_codes_code_key;
 
 -- Prices history table
 CREATE TABLE IF NOT EXISTS listings_tracker_prices (
@@ -34,14 +41,18 @@ CREATE TABLE IF NOT EXISTS listings_tracker_photos (
   uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   notes TEXT,
   display_order INTEGER DEFAULT 0,
+  is_key_photo BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration: add is_key_photo if table already exists
+ALTER TABLE listings_tracker_photos ADD COLUMN IF NOT EXISTS is_key_photo BOOLEAN DEFAULT FALSE;
 
 -- Access codes table
 CREATE TABLE IF NOT EXISTS listings_tracker_access_codes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id UUID NOT NULL REFERENCES listings_tracker_properties(id) ON DELETE CASCADE,
-  code VARCHAR(4) NOT NULL UNIQUE,
+  code VARCHAR(4) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
 );
@@ -121,6 +132,9 @@ CREATE POLICY "Users can read photos via access codes" ON listings_tracker_photo
 
 CREATE POLICY "Users can insert photos" ON listings_tracker_photos
   FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can delete photos" ON listings_tracker_photos
+  FOR DELETE USING (true);
 
 -- Access codes: Admin only for write, public read by code value
 CREATE POLICY "Admin full access to codes" ON listings_tracker_access_codes

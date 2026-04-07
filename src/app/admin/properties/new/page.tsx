@@ -6,14 +6,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateCode } from "@/lib/api/code-utils";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 export default function NewProperty() {
-  const [user, setUser] = useState<any>(null);
+  const [_user, setUser] = useState<any>(null);
   const [listing_link, setListing_link] = useState("");
   const [street_address, setStreet_address] = useState("");
   const [mls_number, setMls_number] = useState("");
   const [listing_price, setListing_price] = useState("");
+  const [status, setStatus] = useState("active");
   const [notes, setNotes] = useState("");
   const [existingCode, setExistingCode] = useState("");
   const [existingCodes, setExistingCodes] = useState<string[]>([]);
@@ -46,6 +47,7 @@ export default function NewProperty() {
       setLoading(false);
     }
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, supabase.auth]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -67,11 +69,12 @@ export default function NewProperty() {
       const { data: propData, error: propError } = await supabase
         .from("listings_tracker_properties")
         .insert({
-          admin_id: user.id,
+          admin_id: _user.id,
           listing_link,
           street_address: street_address || null,
           mls_number: mls_number || null,
           listing_price: parseFloat(listing_price),
+          status,
           notes: notes || null,
         })
         .select()
@@ -85,7 +88,7 @@ export default function NewProperty() {
         .insert({
           property_id: propData.id,
           code,
-          created_by: user.id,
+          created_by: _user.id,
         });
 
       if (codeError) throw codeError;
@@ -124,7 +127,7 @@ export default function NewProperty() {
                 value={listing_link}
                 required
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setListing_link(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setListing_link(getEventValue(e))}
               />
             </div>
 
@@ -135,7 +138,7 @@ export default function NewProperty() {
                 placeholder="123 Main St"
                 value={street_address}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setStreet_address(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setStreet_address(getEventValue(e))}
               />
             </div>
 
@@ -146,7 +149,7 @@ export default function NewProperty() {
                 placeholder="MLS123456"
                 value={mls_number}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setMls_number(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setMls_number(getEventValue(e))}
               />
             </div>
 
@@ -158,8 +161,22 @@ export default function NewProperty() {
                 value={listing_price}
                 required
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setListing_price(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setListing_price(getEventValue(e))}
               />
+            </div>
+
+            <div>
+              <dl-text size="300" color="secondary">Status</dl-text>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                style={{ marginTop: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="sold">Sold</option>
+                <option value="withdrawn">Withdrawn</option>
+              </select>
             </div>
 
             <div>
@@ -168,7 +185,7 @@ export default function NewProperty() {
                 placeholder="Any additional notes..."
                 value={notes}
                 style={{ marginTop: "0.5rem", minHeight: "100px" }}
-                onInput={(e: any) => setNotes(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setNotes(getEventValue(e))}
               />
             </div>
 
@@ -182,7 +199,7 @@ export default function NewProperty() {
                 placeholder="e.g. 1234 (leave blank for new code)"
                 value={existingCode}
                 style={{ marginTop: "0.25rem" }}
-                onInput={(e: any) => {
+                onInput={(e: WcInputEvent) => {
                   const val = getEventValue(e).replace(/\D/g, "").slice(0, 4);
                   setExistingCode(val);
                 }}
