@@ -197,7 +197,7 @@ export default function UserProperties() {
 
   if (loading) {
     return (
-      <main className="page page--centered">
+      <main className="page page--centered" suppressHydrationWarning>
         <dl-spinner />
       </main>
     );
