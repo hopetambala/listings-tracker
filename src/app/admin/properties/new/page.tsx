@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateCode } from "@/lib/api/code-utils";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 export default function NewProperty() {
-  const [user, setUser] = useState<any>(null);
+  const [_user, setUser] = useState<any>(null);
   const [listing_link, setListing_link] = useState("");
   const [street_address, setStreet_address] = useState("");
   const [mls_number, setMls_number] = useState("");
@@ -126,7 +126,7 @@ export default function NewProperty() {
                 value={listing_link}
                 required
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setListing_link(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setListing_link(getEventValue(e))}
               />
             </div>
 
@@ -137,7 +137,7 @@ export default function NewProperty() {
                 placeholder="123 Main St"
                 value={street_address}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setStreet_address(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setStreet_address(getEventValue(e))}
               />
             </div>
 
@@ -148,7 +148,7 @@ export default function NewProperty() {
                 placeholder="MLS123456"
                 value={mls_number}
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setMls_number(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setMls_number(getEventValue(e))}
               />
             </div>
 
@@ -160,7 +160,7 @@ export default function NewProperty() {
                 value={listing_price}
                 required
                 style={{ marginTop: "0.5rem" }}
-                onInput={(e: any) => setListing_price(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setListing_price(getEventValue(e))}
               />
             </div>
 
@@ -184,7 +184,7 @@ export default function NewProperty() {
                 placeholder="Any additional notes..."
                 value={notes}
                 style={{ marginTop: "0.5rem", minHeight: "100px" }}
-                onInput={(e: any) => setNotes(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setNotes(getEventValue(e))}
               />
             </div>
 
@@ -198,7 +198,7 @@ export default function NewProperty() {
                 placeholder="e.g. 1234 (leave blank for new code)"
                 value={existingCode}
                 style={{ marginTop: "0.25rem" }}
-                onInput={(e: any) => {
+                onInput={(e: WcInputEvent) => {
                   const val = getEventValue(e).replace(/\D/g, "").slice(0, 4);
                   setExistingCode(val);
                 }}

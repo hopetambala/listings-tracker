@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { formatPrice } from "@/lib/formatters";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
@@ -288,7 +288,7 @@ export default function UserProperties() {
                   placeholder="Listing URL *"
                   value={newLink}
                   required
-                  onInput={(e: any) => setNewLink(getEventValue(e))}
+                  onInput={(e: WcInputEvent) => setNewLink(getEventValue(e))}
                 />
               </div>
               <div style={{ flex: "1 1 140px" }}>
@@ -296,7 +296,7 @@ export default function UserProperties() {
                   type="text"
                   placeholder="Address"
                   value={newAddress}
-                  onInput={(e: any) => setNewAddress(getEventValue(e))}
+                  onInput={(e: WcInputEvent) => setNewAddress(getEventValue(e))}
                 />
               </div>
               <div style={{ flex: "1 1 120px" }}>
@@ -305,7 +305,7 @@ export default function UserProperties() {
                   placeholder="Price *"
                   value={newPrice}
                   required
-                  onInput={(e: any) => setNewPrice(getEventValue(e))}
+                  onInput={(e: WcInputEvent) => setNewPrice(getEventValue(e))}
                 />
               </div>
               <dl-button variant="primary" size="sm" disabled={submitting || undefined} onClick={handleAddProperty}>
@@ -341,6 +341,7 @@ export default function UserProperties() {
               >
                 {heroImages[prop.id] && (
                   <div style={{ position: "relative" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={heroImages[prop.id]}
                       alt={prop.street_address || "Property"}

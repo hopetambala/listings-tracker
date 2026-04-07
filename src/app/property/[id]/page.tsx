@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 import { formatPrice } from "@/lib/formatters";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
@@ -348,7 +348,7 @@ export default function PropertyDetail() {
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
           {editingAddress ? (
             <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <dl-input label="Address" value={newAddress} onInput={(e: any) => setNewAddress(getEventValue(e))} />
+              <dl-input label="Address" value={newAddress} onInput={(e: WcInputEvent) => setNewAddress(getEventValue(e))} />
               <InlineError msg={addressError} />
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <dl-button variant="primary" size="sm" onClick={handleUpdateAddress} disabled={savingAddress} full-width>
@@ -441,7 +441,7 @@ export default function PropertyDetail() {
             </div>
             {editingLink ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                <dl-input label="URL" type="url" value={newLink} onInput={(e: any) => setNewLink(getEventValue(e))} placeholder="https://www.zillow.com/..." full-width />
+                <dl-input label="URL" type="url" value={newLink} onInput={(e: WcInputEvent) => setNewLink(getEventValue(e))} placeholder="https://www.zillow.com/..." full-width />
                 <InlineError msg={linkError} />
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <dl-button variant="primary" size="sm" onClick={handleUpdateLink} disabled={savingLink} full-width>{savingLink ? "Saving..." : "Save"}</dl-button>
@@ -468,7 +468,7 @@ export default function PropertyDetail() {
                 placeholder="Enter price"
                 value={newPrice}
                 style={{ flex: 1, minWidth: "120px" }}
-                onInput={(e: any) => { setNewPrice(getEventValue(e)); setPriceError(""); }}
+                onInput={(e: WcInputEvent) => { setNewPrice(getEventValue(e)); setPriceError(""); }}
               />
               <input
                 type="date"
@@ -560,6 +560,7 @@ export default function PropertyDetail() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "1rem" }}>
                 {photos.map((photo, index) => (
                   <div key={photo.id} style={{ position: "relative", borderRadius: "6px", overflow: "hidden", border: photo.is_key_photo ? "2px solid #f59e0b" : "2px solid transparent" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.photo_url}
                       alt={photo.notes || "Property"}
@@ -651,6 +652,7 @@ export default function PropertyDetail() {
             onClick={(e) => e.stopPropagation()}
           >
             <button onClick={() => setGalleryOpen(false)} style={{ position: "absolute", top: "-2.5rem", right: 0, background: "none", border: "none", color: "white", fontSize: "2rem", cursor: "pointer", padding: "0.25rem 0.5rem" }}>✕</button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photos[galleryIndex].photo_url}
               alt={photos[galleryIndex].notes || `Photo ${galleryIndex + 1}`}

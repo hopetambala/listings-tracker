@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Type definitions for dlite web components in JSX
  * Allows TypeScript to recognize <dl-*> elements in React/JSX
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type React from "react";
 
 declare global {

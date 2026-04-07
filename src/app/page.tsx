@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 export default function Home() {
   const [code, setCode] = useState("");
@@ -76,7 +76,7 @@ export default function Home() {
           placeholder="4-digit code"
           value={code}
           style={{ textAlign: "center", fontSize: "1.5rem", letterSpacing: "0.1em", width: "100%" }}
-          onInput={(e: any) => {
+          onInput={(e: WcInputEvent) => {
             const val = getEventValue(e).replace(/\D/g, "");
             setCode(val.slice(0, 4));
             setCodeError("");

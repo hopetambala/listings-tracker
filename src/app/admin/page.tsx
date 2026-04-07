@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getEventValue } from "@/dlite-design-system/wc-helpers";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 
 export default function AdminAuth() {
   const [email, setEmail] = useState("");
@@ -111,7 +111,7 @@ export default function AdminAuth() {
               placeholder="Email"
               value={email}
               required
-              onInput={(e: any) => setEmail(getEventValue(e))}
+              onInput={(e: WcInputEvent) => setEmail(getEventValue(e))}
             />
             {!isForgotPassword && (
               <dl-input
@@ -119,7 +119,7 @@ export default function AdminAuth() {
                 placeholder="Password"
                 value={password}
                 required
-                onInput={(e: any) => setPassword(getEventValue(e))}
+                onInput={(e: WcInputEvent) => setPassword(getEventValue(e))}
               />
             )}
             {error && (

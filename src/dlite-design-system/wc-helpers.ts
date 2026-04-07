@@ -2,25 +2,18 @@
  * Utility functions for working with web components in React
  */
 
-/**
- * Extract value from web component event
- * Works with both detail and target properties
- */
-export function getEventValue(e: any): string {
-  return e?.detail?.value ?? e?.target?.value ?? "";
+export type WcInputEvent = CustomEvent<{ value: string }>;
+export type WcCheckedEvent = CustomEvent<{ checked: boolean }>;
+export type WcSelectedEvent = CustomEvent<{ selected: unknown }>;
+
+export function getEventValue(e: WcInputEvent): string {
+  return e?.detail?.value ?? (e?.target as HTMLInputElement)?.value ?? "";
 }
 
-/**
- * Extract checked state from web component event
- * Works with both detail and target properties
- */
-export function getEventChecked(e: any): boolean {
-  return e?.detail?.checked ?? e?.target?.checked ?? false;
+export function getEventChecked(e: WcCheckedEvent): boolean {
+  return e?.detail?.checked ?? (e?.target as HTMLInputElement)?.checked ?? false;
 }
 
-/**
- * Extract selected option from web component select event
- */
-export function getEventSelected(e: any): any {
-  return e?.detail?.selected ?? e?.target?.selected ?? null;
+export function getEventSelected(e: WcSelectedEvent): unknown {
+  return e?.detail?.selected ?? (e?.target as HTMLSelectElement)?.value ?? null;
 }
