@@ -24,14 +24,22 @@ export default function ResetPasswordForm() {
       return;
     }
 
-    // Exchange the one-time code for an active session so updateUser will work
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        setError("This reset link has expired or already been used. Please request a new one.");
-      } else {
+    // @supabase/ssr sets detectSessionInUrl: true, so the browser client automatically
+    // exchanges the code before this component mounts and fires PASSWORD_RECOVERY.
+    // Calling exchangeCodeForSession manually would fail with "already used".
+    // Instead, listen for PASSWORD_RECOVERY; fall back to getSession() for the race
+    // condition where the event fires before this listener is attached.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
         setReady(true);
       }
     });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
+    return () => subscription.unsubscribe();
   }, [searchParams, supabase.auth]);
 
   async function handleResetPassword(e: React.FormEvent) {

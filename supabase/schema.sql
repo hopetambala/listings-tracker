@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS listings_tracker_properties (
 -- Migration: add status if table already exists
 ALTER TABLE listings_tracker_properties ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'sold', 'withdrawn'));
 
+-- Migration: drop UNIQUE constraint on code to allow multiple properties per code
+ALTER TABLE listings_tracker_access_codes DROP CONSTRAINT IF EXISTS listings_tracker_access_codes_code_key;
+
 -- Prices history table
 CREATE TABLE IF NOT EXISTS listings_tracker_prices (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -49,7 +52,7 @@ ALTER TABLE listings_tracker_photos ADD COLUMN IF NOT EXISTS is_key_photo BOOLEA
 CREATE TABLE IF NOT EXISTS listings_tracker_access_codes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   property_id UUID NOT NULL REFERENCES listings_tracker_properties(id) ON DELETE CASCADE,
-  code VARCHAR(4) NOT NULL UNIQUE,
+  code VARCHAR(4) NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE
 );
