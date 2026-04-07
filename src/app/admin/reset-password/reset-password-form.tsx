@@ -15,14 +15,10 @@ export default function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
+  const code = searchParams.get("code");
 
   useEffect(() => {
-    const code = searchParams.get("code");
-
-    if (!code) {
-      setError("Invalid reset link. Please request a new password reset.");
-      return;
-    }
+    if (!code) return;
 
     // @supabase/ssr sets detectSessionInUrl: true, so the browser client automatically
     // exchanges the code before this component mounts and fires PASSWORD_RECOVERY.
@@ -30,17 +26,16 @@ export default function ResetPasswordForm() {
     // Instead, listen for PASSWORD_RECOVERY; fall back to getSession() for the race
     // condition where the event fires before this listener is attached.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setReady(true);
-      }
+      if (event === "PASSWORD_RECOVERY") setReady(true);
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setReady(true);
+      else setError("This reset link has expired or already been used. Please request a new one.");
     });
 
     return () => subscription.unsubscribe();
-  }, [searchParams, supabase.auth]);
+  }, [code, supabase.auth]);
 
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
@@ -88,8 +83,18 @@ export default function ResetPasswordForm() {
             </dl-text>
             <dl-text color="secondary" size="300">Redirecting to dashboard...</dl-text>
           </div>
+        ) : !code ? (
+          // No code in URL — invalid link
+          <div style={{ textAlign: "center" }}>
+            <dl-text color="tertiary" style={{ display: "block", marginBottom: "1.5rem" }}>
+              Invalid reset link. Please request a new password reset.
+            </dl-text>
+            <dl-button variant="primary" onClick={() => router.push("/admin")}>
+              Request a New Reset Link
+            </dl-button>
+          </div>
         ) : error && !ready ? (
-          // Link is invalid/expired — show error + request new link button
+          // Link expired or already used
           <div style={{ textAlign: "center" }}>
             <dl-text color="tertiary" style={{ display: "block", marginBottom: "1.5rem" }}>
               {error}
