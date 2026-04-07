@@ -147,9 +147,20 @@ export default function UserProperties() {
       if (!stored) { router.push("/"); return; }
       const { code: storedCode } = JSON.parse(stored);
 
+      // Resolve the admin who owns this code — needed for NOT NULL columns on both tables
+      const { data: codeRow, error: codeRowError } = await supabase
+        .from("listings_tracker_access_codes")
+        .select("created_by")
+        .eq("code", storedCode)
+        .limit(1)
+        .single();
+      if (codeRowError || !codeRow) throw new Error("Could not resolve access code owner.");
+      const admin_id = codeRow.created_by;
+
       const { data: propData, error: propError } = await supabase
         .from("listings_tracker_properties")
         .insert({
+          admin_id,
           listing_link: newLink,
           street_address: newAddress || null,
           listing_price: parseFloat(newPrice),
@@ -162,7 +173,7 @@ export default function UserProperties() {
 
       const { error: codeError } = await supabase
         .from("listings_tracker_access_codes")
-        .insert({ property_id: propData.id, code: storedCode });
+        .insert({ property_id: propData.id, code: storedCode, created_by: admin_id });
 
       if (codeError) throw codeError;
 

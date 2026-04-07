@@ -305,8 +305,10 @@ export default function PropertyDetail() {
     const swap = photos[swapIdx];
     setPhotoActionError("");
     try {
-      await supabase.from("listings_tracker_photos").update({ display_order: swap.display_order }).eq("id", curr.id);
-      await supabase.from("listings_tracker_photos").update({ display_order: curr.display_order }).eq("id", swap.id);
+      const { error: e1 } = await supabase.from("listings_tracker_photos").update({ display_order: swap.display_order }).eq("id", curr.id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("listings_tracker_photos").update({ display_order: curr.display_order }).eq("id", swap.id);
+      if (e2) throw e2;
       const updated = [...photos];
       updated[idx] = { ...curr, display_order: swap.display_order };
       updated[swapIdx] = { ...swap, display_order: curr.display_order };
