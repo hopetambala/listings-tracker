@@ -14,6 +14,7 @@ export default function NewProperty() {
   const [street_address, setStreet_address] = useState("");
   const [mls_number, setMls_number] = useState("");
   const [listing_price, setListing_price] = useState("");
+  const [status, setStatus] = useState("active");
   const [notes, setNotes] = useState("");
   const [existingCode, setExistingCode] = useState("");
   const [existingCodes, setExistingCodes] = useState<string[]>([]);
@@ -72,6 +73,7 @@ export default function NewProperty() {
           street_address: street_address || null,
           mls_number: mls_number || null,
           listing_price: parseFloat(listing_price),
+          status,
           notes: notes || null,
         })
         .select()
@@ -160,6 +162,20 @@ export default function NewProperty() {
                 style={{ marginTop: "0.5rem" }}
                 onInput={(e: any) => setListing_price(getEventValue(e))}
               />
+            </div>
+
+            <div>
+              <dl-text size="300" color="secondary">Status</dl-text>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                style={{ marginTop: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="sold">Sold</option>
+                <option value="withdrawn">Withdrawn</option>
+              </select>
             </div>
 
             <div>

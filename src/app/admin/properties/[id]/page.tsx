@@ -18,6 +18,7 @@ export default function EditProperty() {
   const [mls_number, setMls_number] = useState("");
   const [listing_price, setListing_price] = useState("");
   const [sold_price, setSold_price] = useState("");
+  const [status, setStatus] = useState("active");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,6 +55,7 @@ export default function EditProperty() {
       setMls_number(data.mls_number || "");
       setListing_price(String(data.listing_price));
       setSold_price(data.sold_price ? String(data.sold_price) : "");
+      setStatus(data.status ?? "active");
       setNotes(data.notes || "");
       setLoading(false);
     }
@@ -74,6 +76,7 @@ export default function EditProperty() {
           mls_number: mls_number || null,
           listing_price: parseFloat(listing_price),
           sold_price: sold_price ? parseFloat(sold_price) : null,
+          status,
           notes: notes || null,
         })
         .eq("id", propertyId);
@@ -158,6 +161,20 @@ export default function EditProperty() {
                 style={{ marginTop: "0.5rem" }}
                 onInput={(e: any) => setSold_price(getEventValue(e))}
               />
+            </div>
+
+            <div>
+              <dl-text size="300" color="secondary">Status</dl-text>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                style={{ marginTop: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+              >
+                <option value="active">Active</option>
+                <option value="pending">Pending</option>
+                <option value="sold">Sold</option>
+                <option value="withdrawn">Withdrawn</option>
+              </select>
             </div>
 
             <div>

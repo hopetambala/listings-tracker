@@ -16,6 +16,7 @@ export type Database = {
           listing_price: number;
           sold_price: number | null;
           notes: string | null;
+          status: string | null;
           created_at: string;
           updated_at: string;
         };

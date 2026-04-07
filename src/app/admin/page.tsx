@@ -48,7 +48,9 @@ export default function AdminAuth() {
 
     // Forgot password flow
     if (isForgotPassword) {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/admin/reset-password`,
+      });
 
       if (resetError) {
         setLoading(false);

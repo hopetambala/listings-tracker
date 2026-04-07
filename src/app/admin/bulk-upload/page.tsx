@@ -15,6 +15,7 @@ interface BulkResult {
   street_address?: string;
   listing_price: number;
   error?: string;
+  duplicate?: boolean;
 }
 
 export default function BulkUpload() {
@@ -31,10 +32,7 @@ export default function BulkUpload() {
   useEffect(() => {
     async function checkAuth() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/admin");
-        return;
-      }
+      if (!user) { router.push("/admin"); return; }
       setUser(user);
       setLoading(false);
     }
@@ -58,10 +56,30 @@ export default function BulkUpload() {
       return;
     }
 
+    // Check for duplicate URLs already in the DB for this admin
+    const { data: existingProps } = await supabase
+      .from("listings_tracker_properties")
+      .select("listing_link")
+      .eq("admin_id", user.id);
+    const existingUrls = new Set((existingProps ?? []).map((p) => p.listing_link));
+
     try {
       const results: BulkResult[] = [];
 
       for (const row of parseResult.data) {
+        // Duplicate detection
+        if (existingUrls.has(row.listing_link)) {
+          results.push({
+            property_id: "",
+            code: "",
+            street_address: row.street_address,
+            listing_price: parseFloat(row.listing_price),
+            duplicate: true,
+            error: `Duplicate URL — this listing already exists in your properties.`,
+          });
+          continue;
+        }
+
         try {
           const code = generateCode();
 
@@ -82,13 +100,11 @@ export default function BulkUpload() {
 
           const { error: codeError } = await supabase
             .from("listings_tracker_access_codes")
-            .insert({
-              property_id: propData.id,
-              code,
-              created_by: user.id,
-            });
+            .insert({ property_id: propData.id, code, created_by: user.id });
 
           if (codeError) throw codeError;
+
+          existingUrls.add(row.listing_link); // prevent intra-batch duplicates
 
           results.push({
             property_id: propData.id,
@@ -116,27 +132,39 @@ export default function BulkUpload() {
     }
   }
 
+  function downloadResultsCSV() {
+    const rows = [
+      ["street_address", "listing_price", "code", "property_id", "status"],
+      ...results.map((r) => [
+        r.street_address ?? "",
+        String(r.listing_price),
+        r.code,
+        r.property_id,
+        r.error ? (r.duplicate ? "duplicate" : "error: " + r.error) : "created",
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "bulk-upload-results.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function copyCode(code: string) {
-    try {
-      await navigator.clipboard.writeText(code);
-      alert("Code copied to clipboard!");
-    } catch { }
+    try { await navigator.clipboard.writeText(code); } catch { }
   }
 
   if (loading) {
-    return (
-      <main className="page page--centered">
-        <dl-spinner />
-      </main>
-    );
+    return <main className="page page--centered"><dl-spinner /></main>;
   }
 
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem" }}>
-        <dl-heading level={1} className="cl-dlite-sem-mb-400">
-          Bulk Upload Properties
-        </dl-heading>
+        <dl-heading level={1} className="cl-dlite-sem-mb-400">Bulk Upload Properties</dl-heading>
         <dl-text color="secondary" className="cl-dlite-sem-mb-600">
           Upload multiple properties at once using CSV format
         </dl-text>
@@ -144,11 +172,7 @@ export default function BulkUpload() {
         {results.length === 0 ? (
           <>
             <div style={{ marginBottom: "2rem" }}>
-              <dl-button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowTemplate(!showTemplate)}
-              >
+              <dl-button variant="secondary" size="sm" onClick={() => setShowTemplate(!showTemplate)}>
                 {showTemplate ? "Hide" : "Show"} CSV Template
               </dl-button>
               {showTemplate && (
@@ -165,12 +189,7 @@ export default function BulkUpload() {
               <dl-textarea
                 placeholder={getCSVTemplate()}
                 value={csvText}
-                style={{
-                  marginTop: "0.5rem",
-                  minHeight: "200px",
-                  fontFamily: "monospace",
-                  fontSize: "0.875rem",
-                }}
+                style={{ marginTop: "0.5rem", minHeight: "200px", fontFamily: "monospace", fontSize: "0.875rem" }}
                 onInput={(e: any) => setCsvText(getEventValue(e))}
               />
             </div>
@@ -182,9 +201,7 @@ export default function BulkUpload() {
                   <ul style={{ marginTop: "1rem", marginLeft: "1.5rem" }}>
                     {errors.map((err, i) => (
                       <li key={i}>
-                        <dl-text size="300">
-                          Row {err.row}: {err.error}
-                        </dl-text>
+                        <dl-text size="300">Row {err.row}: {err.error}</dl-text>
                       </li>
                     ))}
                   </ul>
@@ -193,21 +210,10 @@ export default function BulkUpload() {
             )}
 
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
-              <dl-button
-                variant="primary"
-                size="md"
-                full-width
-                disabled={uploading || undefined}
-                onClick={handleUpload}
-              >
+              <dl-button variant="primary" size="md" full-width disabled={uploading || undefined} onClick={handleUpload}>
                 {uploading ? "Uploading..." : "Upload Properties"}
               </dl-button>
-              <dl-button
-                variant="secondary"
-                size="md"
-                full-width
-                onClick={() => router.push("/admin/dashboard")}
-              >
+              <dl-button variant="secondary" size="md" full-width onClick={() => router.push("/admin/dashboard")}>
                 Cancel
               </dl-button>
             </div>
@@ -216,38 +222,46 @@ export default function BulkUpload() {
           <>
             <dl-card style={{ marginBottom: "1rem" }}>
               <div style={{ padding: "1rem" }}>
-                <dl-heading level={2}>Upload Complete!</dl-heading>
-                <dl-text style={{ marginTop: "1rem" }}>
-                  {results.filter((r) => !r.error).length} properties created successfully
-                </dl-text>
+                <dl-heading level={2}>Upload Complete</dl-heading>
+                <div style={{ marginTop: "0.75rem", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+                  <dl-text style={{ color: "#16a34a" }}>
+                    ✓ {results.filter((r) => !r.error).length} created
+                  </dl-text>
+                  {results.some((r) => r.duplicate) && (
+                    <dl-text style={{ color: "#92400e" }}>
+                      ⚠ {results.filter((r) => r.duplicate).length} duplicate{results.filter((r) => r.duplicate).length !== 1 ? "s" : ""} skipped
+                    </dl-text>
+                  )}
+                  {results.some((r) => r.error && !r.duplicate) && (
+                    <dl-text style={{ color: "#991b1b" }}>
+                      ✕ {results.filter((r) => r.error && !r.duplicate).length} failed
+                    </dl-text>
+                  )}
+                </div>
               </div>
             </dl-card>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
               {results.map((result, i) => (
                 <dl-card key={i}>
                   <div style={{ padding: "1rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+                      <div style={{ flex: 1 }}>
                         <dl-text size="300" color={result.error ? "tertiary" : "primary"}>
-                          {result.street_address || "No address"} - ${result.listing_price}
+                          {result.street_address || "No address"} — ${result.listing_price.toLocaleString()}
                         </dl-text>
                         {result.error && (
-                          <dl-text size="200" color="tertiary" style={{ marginTop: "0.5rem" }}>
-                            Error: {result.error}
+                          <dl-text size="200" color="tertiary" style={{ marginTop: "0.25rem" }}>
+                            {result.duplicate ? "⚠ " : "✕ "}{result.error}
                           </dl-text>
                         )}
                       </div>
                       {!result.error && (
                         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <dl-text size="300" style={{ fontWeight: "bold", fontSize: "1.2rem" }}>
+                          <dl-text size="300" style={{ fontWeight: "bold", fontFamily: "monospace", fontSize: "1.1rem" }}>
                             {result.code}
                           </dl-text>
-                          <dl-button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => copyCode(result.code)}
-                          >
+                          <dl-button variant="secondary" size="sm" onClick={() => copyCode(result.code)}>
                             Copy
                           </dl-button>
                         </div>
@@ -258,24 +272,14 @@ export default function BulkUpload() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <dl-button
-                variant="primary"
-                size="md"
-                full-width
-                onClick={() => {
-                  setResults([]);
-                  setCsvText("");
-                }}
-              >
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <dl-button variant="primary" size="md" full-width onClick={downloadResultsCSV}>
+                Download Results CSV
+              </dl-button>
+              <dl-button variant="secondary" size="md" full-width onClick={() => { setResults([]); setCsvText(""); }}>
                 Upload More
               </dl-button>
-              <dl-button
-                variant="secondary"
-                size="md"
-                full-width
-                onClick={() => router.push("/admin/dashboard")}
-              >
+              <dl-button variant="ghost" size="md" full-width onClick={() => router.push("/admin/dashboard")}>
                 Done
               </dl-button>
             </div>

@@ -11,9 +11,13 @@ CREATE TABLE IF NOT EXISTS listings_tracker_properties (
   listing_price NUMERIC NOT NULL,
   sold_price NUMERIC,
   notes TEXT,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'sold', 'withdrawn')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Migration: add status if table already exists
+ALTER TABLE listings_tracker_properties ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active' CHECK (status IN ('active', 'pending', 'sold', 'withdrawn'));
 
 -- Prices history table
 CREATE TABLE IF NOT EXISTS listings_tracker_prices (
@@ -125,6 +129,9 @@ CREATE POLICY "Users can read photos via access codes" ON listings_tracker_photo
 
 CREATE POLICY "Users can insert photos" ON listings_tracker_photos
   FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Users can delete photos" ON listings_tracker_photos
+  FOR DELETE USING (true);
 
 -- Access codes: Admin only for write, public read by code value
 CREATE POLICY "Admin full access to codes" ON listings_tracker_access_codes
