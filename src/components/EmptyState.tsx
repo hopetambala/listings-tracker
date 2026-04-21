@@ -11,27 +11,12 @@ export function EmptyState({ icon = "🏠", title, description, action }: EmptyS
   return (
     <dl-card>
       <div
-        style={{
-          padding: "2.5rem 1.5rem",
-          textAlign: "center",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "0.75rem",
-        }}
+        className="cl-dlite-flex cl-dlite-flex-col cl-dlite-items-center cl-dlite-text-center cl-dlite-sem-px-600 cl-dlite-sem-py-800 cl-dlite-sem-gap-300"
       >
         <div
           aria-hidden
-          style={{
-            width: "3.5rem",
-            height: "3.5rem",
-            borderRadius: "9999px",
-            background: "#f1f5f9",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "1.75rem",
-          }}
+          className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-center cl-dlite-sem-bg-sunken"
+          style={{ width: "3.5rem", height: "3.5rem", borderRadius: "9999px", fontSize: "1.75rem" }}
         >
           {icon}
         </div>
@@ -41,7 +26,7 @@ export function EmptyState({ icon = "🏠", title, description, action }: EmptyS
             {description}
           </dl-text>
         )}
-        {action && <div style={{ marginTop: "0.5rem" }}>{action}</div>}
+        {action && <div className="cl-dlite-sem-mt-200">{action}</div>}
       </div>
     </dl-card>
   );

@@ -175,7 +175,7 @@ describe('EditProperty — edit property form', () => {
     clickByText(container, 'Save Changes')
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/permission denied/i)
     })
   })

@@ -11,6 +11,7 @@ import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 import { toast } from "@/components/Toast";
 import { EmptyState } from "@/components/EmptyState";
 import { ListingCardSkeletonGrid } from "@/components/Skeleton";
+import { controlBase, smallSelectBase, smallControlBase } from "@/components/formControlStyles";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
@@ -233,7 +234,7 @@ export default function AdminProperties() {
                               onChange={(e) => setEditValue(e.target.value)}
                               onBlur={() => saveStatus(prop.id, editValue)}
                               disabled={savingId === prop.id}
-                              style={{ padding: "0.2rem 0.5rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.8rem" }}
+                              style={smallSelectBase}
                             >
                               <option value="active">Active</option>
                               <option value="pending">Pending</option>
@@ -266,7 +267,7 @@ export default function AdminProperties() {
                                 if (e.key === "Escape") setEditingField(null);
                               }}
                               disabled={savingId === prop.id}
-                              style={{ width: "140px", padding: "0.2rem 0.5rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+                              style={{ ...smallControlBase, width: "160px" }}
                             />
                           ) : (
                             <button
@@ -354,7 +355,7 @@ export default function AdminProperties() {
                             value={soldDate}
                             onChange={(e) => setSoldDate(e.target.value)}
                             max={new Date().toISOString().split("T")[0]}
-                            style={{ marginTop: "0.25rem", width: "100%", padding: "0.4rem 0.6rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", boxSizing: "border-box" }}
+                            style={{ ...controlBase, marginTop: "0.25rem", width: "100%" }}
                           />
                         </div>
                         <dl-button variant="primary" size="sm" disabled={savingId === prop.id || undefined} onClick={() => confirmMarkSold(prop.id)}>

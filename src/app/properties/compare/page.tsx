@@ -30,15 +30,13 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <>
       <div
+        className="cl-dlite-sem-py-300 cl-dlite-sem-px-400 cl-dlite-sem-bg-sunken cl-dlite-sem-border-b"
         style={{
-          padding: "0.75rem 1rem",
-          background: "#f8fafc",
           fontSize: "0.75rem",
           letterSpacing: "0.05em",
           textTransform: "uppercase",
           color: "#475569",
           fontWeight: 700,
-          borderBottom: "1px solid #e2e8f0",
         }}
       >
         {label}
@@ -51,12 +49,8 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function Cell({ children }: { children: React.ReactNode }) {
   return (
     <div
-      style={{
-        padding: "0.75rem 1rem",
-        fontSize: "0.875rem",
-        borderBottom: "1px solid #e2e8f0",
-        background: "white",
-      }}
+      className="cl-dlite-sem-py-300 cl-dlite-sem-px-400 cl-dlite-sem-border-b"
+      style={{ fontSize: "0.875rem", background: "white" }}
     >
       {children}
     </div>
@@ -199,7 +193,7 @@ function CompareListingsInner() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "72rem", padding: "0 1rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", gap: "0.75rem", flexWrap: "wrap" }}>
+        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-flex-wrap cl-dlite-sem-gap-300 cl-dlite-sem-mb-600">
           <dl-heading level={1} style={{ margin: 0 }}>Compare {columns.length} listings</dl-heading>
           <dl-button variant="ghost" size="sm" onClick={() => router.push("/properties")}>
             ← Back

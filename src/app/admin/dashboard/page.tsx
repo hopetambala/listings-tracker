@@ -79,22 +79,22 @@ export default function AdminDashboard() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "50rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
+        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-sem-mb-600">
           <dl-heading level={1}>Dashboard</dl-heading>
           <dl-button variant="ghost" size="sm" onClick={handleSignOut}>Sign Out</dl-button>
         </div>
 
-        <dl-text color="secondary" style={{ display: "block", marginBottom: "1.5rem" }}>
+        <dl-text color="secondary" className="cl-dlite-block cl-dlite-sem-mb-600">
           Signed in as <strong>{user?.email}</strong>
         </dl-text>
 
         {/* Metrics row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem", marginBottom: "2rem" }}>
           {statCards.map((s) => (
             <dl-card key={s.label}>
               <div style={{ padding: "1.25rem 1rem", textAlign: "center" }}>
                 <div style={{ fontSize: "2rem", fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.35rem" }}>{s.label}</div>
+                <div style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.35rem", letterSpacing: "0.02em" }}>{s.label}</div>
               </div>
             </dl-card>
           ))}
@@ -102,7 +102,7 @@ export default function AdminDashboard() {
 
         {/* Navigation */}
         <dl-card>
-          <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div className="cl-dlite-flex cl-dlite-flex-col cl-dlite-sem-p-600 cl-dlite-sem-gap-300">
             <dl-button variant="primary" full-width onClick={() => router.push("/admin/properties")}>
               Manage Properties
             </dl-button>

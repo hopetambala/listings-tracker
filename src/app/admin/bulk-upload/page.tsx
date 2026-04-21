@@ -190,13 +190,16 @@ export default function BulkUpload() {
 
         {results.length === 0 ? (
           <>
-            <div style={{ marginBottom: "2rem" }}>
+            <div className="cl-dlite-sem-mb-800">
               <dl-button variant="secondary" size="sm" onClick={() => setShowTemplate(!showTemplate)}>
                 {showTemplate ? "Hide" : "Show"} CSV Template
               </dl-button>
               {showTemplate && (
-                <dl-card style={{ marginTop: "1rem" }}>
-                  <div style={{ padding: "1rem", fontFamily: "monospace", fontSize: "0.875rem", overflow: "auto" }}>
+                <dl-card className="cl-dlite-sem-mt-400">
+                  <div
+                    className="cl-dlite-sem-p-400 cl-dlite-overflow-x-auto"
+                    style={{ fontFamily: "monospace", fontSize: "0.875rem" }}
+                  >
                     <pre>{getCSVTemplate()}</pre>
                   </div>
                 </dl-card>
@@ -208,7 +211,8 @@ export default function BulkUpload() {
               <dl-textarea
                 placeholder={getCSVTemplate()}
                 value={csvText}
-                style={{ marginTop: "0.5rem", minHeight: "200px", fontFamily: "monospace", fontSize: "0.875rem" }}
+                className="cl-dlite-sem-mt-200"
+                style={{ minHeight: "200px", fontFamily: "monospace", fontSize: "0.875rem" }}
                 onInput={(e: WcInputEvent) => {
                   setCsvText(getEventValue(e));
                   setPreview(null);
@@ -218,10 +222,10 @@ export default function BulkUpload() {
             </div>
 
             {errors.length > 0 && (
-              <dl-card style={{ marginTop: "1rem", backgroundColor: "#fee" }}>
-                <div style={{ padding: "1rem" }}>
+              <dl-card className="cl-dlite-sem-mt-400" style={{ backgroundColor: "#fee" }}>
+                <div className="cl-dlite-sem-p-400">
                   <dl-heading level={3}>Errors in CSV</dl-heading>
-                  <ul style={{ marginTop: "1rem", marginLeft: "1.5rem" }}>
+                  <ul className="cl-dlite-sem-mt-400" style={{ marginLeft: "1.5rem" }}>
                     {errors.map((err, i) => (
                       <li key={i}>
                         <dl-text size="300">Row {err.row}: {err.error}</dl-text>
@@ -233,37 +237,47 @@ export default function BulkUpload() {
             )}
 
             {preview && (
-              <dl-card style={{ marginTop: "1rem" }}>
-                <div style={{ padding: "1rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+              <dl-card className="cl-dlite-sem-mt-400">
+                <div className="cl-dlite-sem-p-400">
+                  <div className="cl-dlite-flex cl-dlite-justify-between cl-dlite-items-center cl-dlite-sem-mb-300">
                     <dl-heading level={3} style={{ margin: 0 }}>Preview: {preview.length} {preview.length === 1 ? "row" : "rows"}</dl-heading>
                     <dl-button variant="ghost" size="sm" onClick={() => setPreview(null)}>
                       Edit CSV
                     </dl-button>
                   </div>
-                  <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: "0.375rem" }}>
+                  <div
+                    className="cl-dlite-overflow-x-auto cl-dlite-sem-border cl-dlite-sem-rounded"
+                  >
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-                      <thead style={{ background: "#f8fafc" }}>
+                      <thead className="cl-dlite-sem-bg-sunken">
                         <tr>
-                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>Address</th>
-                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>Price</th>
-                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>MLS</th>
-                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>Link</th>
+                          <th className="cl-dlite-text-left cl-dlite-sem-py-200 cl-dlite-sem-px-300 cl-dlite-sem-border-b">Address</th>
+                          <th className="cl-dlite-text-left cl-dlite-sem-py-200 cl-dlite-sem-px-300 cl-dlite-sem-border-b">Price</th>
+                          <th className="cl-dlite-text-left cl-dlite-sem-py-200 cl-dlite-sem-px-300 cl-dlite-sem-border-b">MLS</th>
+                          <th className="cl-dlite-text-left cl-dlite-sem-py-200 cl-dlite-sem-px-300 cl-dlite-sem-border-b">Link</th>
                         </tr>
                       </thead>
                       <tbody>
                         {preview.slice(0, 10).map((row, i) => (
                           <tr key={i}>
-                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9" }}>{row.street_address || "—"}</td>
-                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9" }}>${Number(row.listing_price).toLocaleString()}</td>
-                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9" }}>{row.mls_number || "—"}</td>
-                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9", maxWidth: "16rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.listing_link}</td>
+                            <td className="cl-dlite-sem-py-200 cl-dlite-sem-px-300" style={{ borderBottom: "1px solid #f1f5f9" }}>{row.street_address || "—"}</td>
+                            <td className="cl-dlite-sem-py-200 cl-dlite-sem-px-300" style={{ borderBottom: "1px solid #f1f5f9" }}>${Number(row.listing_price).toLocaleString()}</td>
+                            <td className="cl-dlite-sem-py-200 cl-dlite-sem-px-300" style={{ borderBottom: "1px solid #f1f5f9" }}>{row.mls_number || "—"}</td>
+                            <td
+                              className="cl-dlite-sem-py-200 cl-dlite-sem-px-300 cl-dlite-truncate"
+                              style={{ borderBottom: "1px solid #f1f5f9", maxWidth: "16rem" }}
+                            >
+                              {row.listing_link}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     {preview.length > 10 && (
-                      <div style={{ padding: "0.5rem 0.75rem", background: "#f8fafc", fontSize: "0.8rem", color: "#64748b" }}>
+                      <div
+                        className="cl-dlite-sem-py-200 cl-dlite-sem-px-300 cl-dlite-sem-bg-sunken"
+                        style={{ fontSize: "0.8rem", color: "#64748b" }}
+                      >
                         …and {preview.length - 10} more
                       </div>
                     )}
@@ -272,7 +286,7 @@ export default function BulkUpload() {
               </dl-card>
             )}
 
-            <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+            <div className="cl-dlite-flex cl-dlite-sem-gap-400 cl-dlite-sem-mt-800">
               {!preview ? (
                 <dl-button variant="primary" size="md" full-width disabled={uploading || undefined} onClick={handlePreview}>
                   Preview CSV
@@ -289,10 +303,10 @@ export default function BulkUpload() {
           </>
         ) : (
           <>
-            <dl-card style={{ marginBottom: "1rem" }}>
-              <div style={{ padding: "1rem" }}>
+            <dl-card className="cl-dlite-sem-mb-400">
+              <div className="cl-dlite-sem-p-400">
                 <dl-heading level={2}>Upload Complete</dl-heading>
-                <div style={{ marginTop: "0.75rem", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+                <div className="cl-dlite-flex cl-dlite-flex-wrap cl-dlite-sem-gap-600 cl-dlite-sem-mt-300">
                   <dl-text style={{ color: "#16a34a" }}>
                     ✓ {results.filter((r) => !r.error).length} created
                   </dl-text>
@@ -310,23 +324,23 @@ export default function BulkUpload() {
               </div>
             </dl-card>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
+            <div className="cl-dlite-flex cl-dlite-flex-col cl-dlite-sem-gap-300 cl-dlite-sem-mb-600">
               {results.map((result, i) => (
                 <dl-card key={i}>
-                  <div style={{ padding: "1rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
-                      <div style={{ flex: 1 }}>
-                        <dl-text size="300" color={result.error ? "tertiary" : "primary"}>
+                  <div className="cl-dlite-sem-p-400">
+                    <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-sem-gap-400">
+                      <div className="cl-dlite-flex-1">
+                        <dl-text size="300" color={result.error ? "secondary" : "primary"}>
                           {result.street_address || "No address"} — ${result.listing_price.toLocaleString()}
                         </dl-text>
                         {result.error && (
-                          <dl-text size="200" color="tertiary" style={{ marginTop: "0.25rem" }}>
+                          <dl-text size="200" color="danger" className="cl-dlite-sem-mt-100">
                             {result.duplicate ? "⚠ " : "✕ "}{result.error}
                           </dl-text>
                         )}
                       </div>
                       {!result.error && (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-sem-gap-200">
                           <dl-text size="300" style={{ fontWeight: "bold", fontFamily: "monospace", fontSize: "1.1rem" }}>
                             {result.code}
                           </dl-text>

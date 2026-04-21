@@ -17,6 +17,7 @@ import { MarketSummary } from "@/components/buyer/MarketSummary";
 import { ListingCard } from "@/components/buyer/ListingCard";
 import { EmptyState } from "@/components/EmptyState";
 import { ListingCardSkeletonGrid, SummarySkeleton } from "@/components/Skeleton";
+import { controlBase, selectBase } from "@/components/formControlStyles";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Price = Database["public"]["Tables"]["listings_tracker_prices"]["Row"];
@@ -61,22 +62,37 @@ function Chips<T extends string>({
             key={opt.value}
             type="button"
             aria-pressed={selected}
+            className="lt-chip"
+            data-selected={selected || undefined}
             onClick={() => onChange(opt.value)}
-            style={{
-              padding: "0.3rem 0.75rem",
-              borderRadius: "9999px",
-              fontSize: "0.8rem",
-              fontWeight: 600,
-              border: `1.5px solid ${selected ? "#0f172a" : "#e5e7eb"}`,
-              background: selected ? "#0f172a" : "white",
-              color: selected ? "white" : "#374151",
-              cursor: "pointer",
-            }}
           >
             {opt.label}
           </button>
         );
       })}
+      <style>{`
+        .lt-chip {
+          padding: 0.3rem 0.75rem;
+          border-radius: 9999px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          border: 1.5px solid #e5e7eb;
+          background: white;
+          color: #374151;
+          cursor: pointer;
+          outline: none;
+          transition: background 80ms, border-color 80ms, color 80ms, box-shadow 80ms;
+        }
+        .lt-chip:hover { border-color: #cbd5e1; }
+        .lt-chip[data-selected] {
+          background: #0f172a;
+          border-color: #0f172a;
+          color: white;
+        }
+        .lt-chip:focus-visible {
+          box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.2);
+        }
+      `}</style>
     </div>
   );
 }
@@ -360,8 +376,8 @@ function UserPropertiesInner() {
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-flex-wrap cl-dlite-sem-gap-300 cl-dlite-sem-mb-600">
+          <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-sem-gap-300">
             <dl-heading level={1} style={{ margin: 0 }}>Your Listings</dl-heading>
             <span style={{ fontSize: "0.8rem", color: "#6b7280", background: "#f3f4f6", borderRadius: "9999px", padding: "2px 10px" }}>
               {displayedProperties.length} of {properties.length}
@@ -388,37 +404,32 @@ function UserPropertiesInner() {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "0.625rem",
+              gap: "0.5rem",
               marginBottom: "1.25rem",
               position: "sticky",
               top: 0,
               zIndex: 10,
-              padding: "0.625rem 0",
+              padding: "0.5rem 0 0.625rem",
               background: "rgba(255,255,255,0.92)",
               backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              borderBottom: "1px solid #e5e7eb",
             }}
           >
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "stretch" }}>
               <input
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search address, notes, or MLS…"
                 aria-label="Search listings"
-                style={{
-                  flex: "1 1 200px",
-                  padding: "0.45rem 0.75rem",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "0.375rem",
-                  fontSize: "0.875rem",
-                  background: "white",
-                }}
+                style={{ ...controlBase, flex: "1 1 200px" }}
               />
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortBy)}
                 aria-label="Sort listings"
-                style={{ padding: "0.45rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", background: "white" }}
+                style={selectBase}
               >
                 <option value="date_desc">Newest first</option>
                 <option value="date_asc">Oldest first</option>
@@ -443,12 +454,12 @@ function UserPropertiesInner() {
           </div>
         )}
 
-        <dl-card style={{ marginBottom: "1.25rem" }}>
+        <dl-card className="cl-dlite-sem-mb-500">
           <form onSubmit={handleAddProperty} style={{ padding: "1.25rem 1.5rem" }}>
-            <dl-text size="300" color="secondary" style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
+            <dl-text size="300" color="secondary" className="cl-dlite-block cl-dlite-sem-mb-300" style={{ fontWeight: 600 }}>
               Add a Listing
             </dl-text>
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div className="cl-dlite-flex cl-dlite-flex-wrap cl-dlite-items-end cl-dlite-sem-gap-300">
               <div style={{ flex: "2 1 200px" }}>
                 <dl-input
                   label="Listing Link"
@@ -481,7 +492,7 @@ function UserPropertiesInner() {
               </dl-button>
             </div>
             {formError && (
-              <dl-text size="300" color="danger" style={{ display: "block", marginTop: "0.5rem" }}>
+              <dl-text size="300" color="danger" className="cl-dlite-block cl-dlite-sem-mt-200">
                 {formError}
               </dl-text>
             )}

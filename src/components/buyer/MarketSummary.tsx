@@ -69,14 +69,9 @@ export function MarketSummary({ summary, buyerLabel, targetPrice }: MarketSummar
   if (stats.length === 0) return null;
 
   return (
-    <section
-      aria-label="Market summary"
-      style={{
-        marginBottom: "1.5rem",
-      }}
-    >
+    <section aria-label="Market summary" className="cl-dlite-sem-mb-600">
       {(buyerLabel || targetPrice) && (
-        <div style={{ marginBottom: "0.5rem" }}>
+        <div className="cl-dlite-sem-mb-200">
           <dl-text size="300" color="secondary">
             {buyerLabel ? `${buyerLabel} · ` : ""}
             {targetPrice ? `Budget $${formatPrice(targetPrice)}` : ""}
@@ -86,7 +81,7 @@ export function MarketSummary({ summary, buyerLabel, targetPrice }: MarketSummar
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: `repeat(auto-fit, minmax(160px, 1fr))`,
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
           gap: "0.75rem",
         }}
       >
@@ -95,17 +90,14 @@ export function MarketSummary({ summary, buyerLabel, targetPrice }: MarketSummar
           return (
             <div
               key={stat.label}
-              style={{
-                padding: "0.875rem 1rem",
-                background: "white",
-                border: `1.5px solid ${tone.borderColor}`,
-                borderRadius: "var(--tk-dlite-semantic-border-radius-md, 8px)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.25rem",
-              }}
+              className="cl-dlite-flex cl-dlite-flex-col cl-dlite-sem-p-400 cl-dlite-sem-gap-100 cl-dlite-sem-rounded-md"
+              style={{ background: "white", border: `1.5px solid ${tone.borderColor}` }}
             >
-              <dl-text size="300" color="secondary" style={{ fontSize: "0.75rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+              <dl-text
+                size="300"
+                color="secondary"
+                style={{ fontSize: "0.75rem", letterSpacing: "0.04em", textTransform: "uppercase" }}
+              >
                 {stat.label}
               </dl-text>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: tone.valueColor, lineHeight: 1.1 }}>

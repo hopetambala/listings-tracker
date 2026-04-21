@@ -98,7 +98,7 @@ export default function AdminAuth() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "24rem" }}>
-        <div className="cl-dlite-text-center">
+        <div className="cl-dlite-text-center" style={{ marginBottom: "1.5rem" }}>
           <dl-heading level={1}>
             {isForgotPassword ? "Reset Password" : `Admin ${isSignUp ? "Sign Up" : "Login"}`}
           </dl-heading>
@@ -123,7 +123,7 @@ export default function AdminAuth() {
               />
             )}
             {error && (
-              <dl-text size="300" color={error.startsWith("✓") ? "primary" : "tertiary"}>
+              <dl-text size="300" color={error.startsWith("✓") ? "primary" : "danger"}>
                 {error}
               </dl-text>
             )}

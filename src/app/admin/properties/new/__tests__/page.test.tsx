@@ -131,7 +131,7 @@ describe('NewProperty — create property form', () => {
     clickByText(container, 'Create Property')
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/link and price are required/i)
     })
   })
@@ -148,7 +148,7 @@ describe('NewProperty — create property form', () => {
     clickByText(container, 'Create Property')
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/link and price are required/i)
     })
   })
@@ -217,7 +217,7 @@ describe('NewProperty — create property form', () => {
     clickByText(container, 'Create Property')
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/duplicate entry/i)
     })
   })

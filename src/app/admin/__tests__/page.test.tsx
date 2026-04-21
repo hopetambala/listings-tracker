@@ -106,7 +106,7 @@ describe('AdminAuth — sign-in form', () => {
     fireEvent.submit(container.querySelector('form')!)
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/invalid login credentials/i)
     })
   })
@@ -157,7 +157,7 @@ describe('AdminAuth — sign-up form', () => {
     fireEvent.submit(container.querySelector('form')!)
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/already registered/i)
     })
   })
@@ -207,7 +207,7 @@ describe('AdminAuth — forgot-password form', () => {
     fireEvent.submit(container.querySelector('form')!)
 
     await waitFor(() => {
-      const el = container.querySelector('dl-text[color="tertiary"]')
+      const el = container.querySelector('dl-text[color="danger"]')
       expect(el?.textContent).toMatch(/email not found/i)
     })
   })

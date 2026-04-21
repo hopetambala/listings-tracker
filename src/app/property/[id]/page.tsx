@@ -10,6 +10,7 @@ import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 import { formatPrice } from "@/lib/formatters";
 import { originalListPrice, overAskPct, budgetDelta } from "@/lib/pricing";
 import { toast } from "@/components/Toast";
+import { controlBase, smallSelectBase } from "@/components/formControlStyles";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Price = Database["public"]["Tables"]["listings_tracker_prices"]["Row"];
@@ -430,12 +431,12 @@ export default function PropertyDetail() {
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+        <div className="cl-dlite-flex cl-dlite-items-start cl-dlite-justify-between cl-dlite-flex-wrap cl-dlite-sem-gap-400 cl-dlite-sem-mb-600">
           {editingAddress ? (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <div className="cl-dlite-flex cl-dlite-flex-col cl-dlite-flex-1 cl-dlite-sem-gap-200">
               <dl-input label="Address" value={newAddress} onInput={(e: WcInputEvent) => setNewAddress(getEventValue(e))} />
               <InlineError msg={addressError} />
-              <div style={{ display: "flex", gap: "0.5rem" }}>
+              <div className="cl-dlite-flex cl-dlite-sem-gap-200">
                 <dl-button variant="primary" size="sm" onClick={handleUpdateAddress} disabled={savingAddress} full-width>
                   {savingAddress ? "Saving..." : "Save"}
                 </dl-button>
@@ -445,7 +446,7 @@ export default function PropertyDetail() {
               </div>
             </div>
           ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, flexWrap: "wrap" }}>
+            <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-flex-wrap cl-dlite-flex-1 cl-dlite-sem-gap-300">
               <dl-heading level={1} style={{ wordBreak: "break-word", margin: 0 }}>
                 {property.street_address || "Listing"}
               </dl-heading>
@@ -456,13 +457,13 @@ export default function PropertyDetail() {
         </div>
 
         {/* Status row */}
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-flex-wrap cl-dlite-sem-gap-300 cl-dlite-sem-mb-600">
           {editingStatus ? (
             <>
               <select
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value)}
-                style={{ padding: "0.3rem 0.6rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+                style={smallSelectBase}
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s} value={s}>{STATUS_STYLES[s].label}</option>
@@ -484,8 +485,8 @@ export default function PropertyDetail() {
         </div>
 
         {/* Overview */}
-        <dl-card style={{ marginBottom: "1.5rem" }}>
-          <div style={{ padding: "1.5rem" }}>
+        <dl-card className="cl-dlite-sem-mb-600">
+          <div className="cl-dlite-sem-p-600">
             <div className="form-grid">
               <div>
                 <dl-text size="300" color="secondary">MLS Number</dl-text>
@@ -530,17 +531,17 @@ export default function PropertyDetail() {
         </dl-card>
 
         {/* Listing Link */}
-        <dl-card style={{ marginBottom: "1.5rem" }}>
-          <div style={{ padding: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+        <dl-card className="cl-dlite-sem-mb-600">
+          <div className="cl-dlite-sem-p-600">
+            <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-sem-gap-300 cl-dlite-sem-mb-400">
               <dl-heading level={2} style={{ margin: 0 }}>Listing Link</dl-heading>
               {!editingLink && <dl-button variant="ghost" size="sm" onClick={() => setEditingLink(true)}>Edit</dl-button>}
             </div>
             {editingLink ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div className="cl-dlite-flex cl-dlite-flex-col cl-dlite-sem-gap-300">
                 <dl-input label="URL" type="url" value={newLink} onInput={(e: WcInputEvent) => setNewLink(getEventValue(e))} placeholder="https://www.zillow.com/..." full-width />
                 <InlineError msg={linkError} />
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div className="cl-dlite-flex cl-dlite-sem-gap-200">
                   <dl-button variant="primary" size="sm" onClick={handleUpdateLink} disabled={savingLink} full-width>{savingLink ? "Saving..." : "Save"}</dl-button>
                   <dl-button variant="secondary" size="sm" onClick={() => { setEditingLink(false); setNewLink(property.listing_link || ""); setLinkError(""); }} disabled={savingLink} full-width>Cancel</dl-button>
                 </div>
@@ -556,10 +557,13 @@ export default function PropertyDetail() {
         </dl-card>
 
         {/* Price History */}
-        <dl-card style={{ marginBottom: "1.5rem" }}>
-          <div style={{ padding: "1.5rem" }}>
-            <dl-heading level={2} style={{ marginBottom: "1rem" }}>Price History</dl-heading>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: prices.length > 0 ? "1.25rem" : 0 }}>
+        <dl-card className="cl-dlite-sem-mb-600">
+          <div className="cl-dlite-sem-p-600">
+            <dl-heading level={2} className="cl-dlite-sem-mb-400">Price History</dl-heading>
+            <div
+              className="cl-dlite-flex cl-dlite-flex-wrap cl-dlite-sem-gap-200"
+              style={{ marginBottom: prices.length > 0 ? "1.25rem" : 0 }}
+            >
               <dl-input
                 type="number"
                 placeholder="Enter price"
@@ -573,7 +577,7 @@ export default function PropertyDetail() {
                 onChange={(e) => setPriceDate(e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
                 title="Backdate this price entry (optional)"
-                style={{ padding: "0.4rem 0.6rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+                style={controlBase}
               />
               <dl-button variant="primary" disabled={addingPrice || undefined} onClick={handleAddPrice}>
                 {addingPrice ? "Adding..." : "Add Price"}
@@ -583,9 +587,12 @@ export default function PropertyDetail() {
             {prices.length > 0 && (
               <>
                 <PriceChart prices={prices} soldPrice={property.sold_price} />
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
+                <div className="cl-dlite-flex cl-dlite-flex-col cl-dlite-sem-gap-200 cl-dlite-sem-mt-400">
                   {prices.slice(0, 10).map((price, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
+                    <div
+                      key={i}
+                      className="cl-dlite-flex cl-dlite-justify-between cl-dlite-sem-pb-200 cl-dlite-sem-border-b"
+                    >
                       <dl-text size="300">${formatPrice(price.price)}</dl-text>
                       <dl-text size="300" color="secondary">{new Date(price.recorded_at).toLocaleDateString()}</dl-text>
                     </div>
@@ -597,9 +604,9 @@ export default function PropertyDetail() {
         </dl-card>
 
         {/* Notes */}
-        <dl-card style={{ marginBottom: "1.5rem" }}>
-          <div style={{ padding: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
+        <dl-card className="cl-dlite-sem-mb-600">
+          <div className="cl-dlite-sem-p-600">
+            <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-sem-gap-300 cl-dlite-sem-mb-400">
               <dl-heading level={2} style={{ margin: 0 }}>Notes</dl-heading>
               {!editingNotes && (
                 <dl-button variant="ghost" size="sm" onClick={() => setEditingNotes(true)}>
@@ -608,15 +615,15 @@ export default function PropertyDetail() {
               )}
             </div>
             {editingNotes ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div className="cl-dlite-flex cl-dlite-flex-col cl-dlite-sem-gap-300">
                 <textarea
                   value={newNotes}
                   onChange={(e) => setNewNotes(e.target.value)}
                   placeholder="Add any notes about this property..."
-                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #e0e0e0", borderRadius: "0.375rem", fontFamily: "inherit", fontSize: "0.875rem", resize: "vertical", minHeight: "120px", boxSizing: "border-box" }}
+                  style={{ width: "100%", padding: "0.75rem", border: "1px solid #e0e0e0", borderRadius: "0.5rem", fontFamily: "inherit", fontSize: "0.875rem", resize: "vertical", minHeight: "120px", boxSizing: "border-box" }}
                 />
                 <InlineError msg={notesError} />
-                <div style={{ display: "flex", gap: "0.5rem" }}>
+                <div className="cl-dlite-flex cl-dlite-sem-gap-200">
                   <dl-button variant="primary" size="sm" onClick={handleUpdateNotes} disabled={savingNotes} full-width>{savingNotes ? "Saving..." : "Save"}</dl-button>
                   <dl-button variant="secondary" size="sm" onClick={() => { setEditingNotes(false); setNewNotes(property.notes || ""); setNotesError(""); }} disabled={savingNotes} full-width>Cancel</dl-button>
                 </div>
@@ -630,9 +637,9 @@ export default function PropertyDetail() {
         </dl-card>
 
         {/* Photos */}
-        <dl-card style={{ marginBottom: "1.5rem" }}>
-          <div style={{ padding: "1.5rem" }}>
-            <dl-heading level={2} style={{ marginBottom: "1rem" }}>Photos</dl-heading>
+        <dl-card className="cl-dlite-sem-mb-600">
+          <div className="cl-dlite-sem-p-600">
+            <dl-heading level={2} className="cl-dlite-sem-mb-400">Photos</dl-heading>
 
             <div
               onDragOver={(e) => {

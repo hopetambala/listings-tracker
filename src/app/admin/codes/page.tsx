@@ -155,12 +155,12 @@ export default function AdminCodes() {
   return (
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
+        <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-sem-mb-600">
           <dl-heading level={1}>Access Codes</dl-heading>
           <dl-button variant="ghost" size="sm" onClick={() => router.push("/admin/dashboard")}>← Dashboard</dl-button>
         </div>
 
-        <dl-text color="secondary" style={{ display: "block", marginBottom: "1.5rem" }}>
+        <dl-text color="secondary" className="cl-dlite-block cl-dlite-sem-mb-600">
           Share a code with a buyer to give them access to all properties under it.
           Assign multiple properties to the same code when creating a property.
         </dl-text>
@@ -215,13 +215,35 @@ export default function AdminCodes() {
 
                   {/* Buyer meta: label + target */}
                   {!isEditing ? (
-                    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1rem" }}>
-                      <dl-text size="300" color="secondary">
-                        {buyer_label ? buyer_label : <em>No buyer label</em>}
-                      </dl-text>
-                      <dl-text size="300" color="secondary">
-                        {target_price ? `Budget $${formatPrice(target_price)}` : <em>No target price</em>}
-                      </dl-text>
+                    <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1rem" }}>
+                      <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        padding: "2px 10px",
+                        borderRadius: "9999px",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        background: buyer_label ? "#eef2ff" : "#f8fafc",
+                        color: buyer_label ? "#3730a3" : "#94a3b8",
+                        border: `1px solid ${buyer_label ? "#c7d2fe" : "#e2e8f0"}`,
+                      }}>
+                        {buyer_label || "No buyer label"}
+                      </span>
+                      <span style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.25rem",
+                        padding: "2px 10px",
+                        borderRadius: "9999px",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        background: target_price ? "#ecfdf5" : "#f8fafc",
+                        color: target_price ? "#065f46" : "#94a3b8",
+                        border: `1px solid ${target_price ? "#a7f3d0" : "#e2e8f0"}`,
+                      }}>
+                        {target_price ? `Budget $${formatPrice(target_price)}` : "No target price"}
+                      </span>
                     </div>
                   ) : (
                     <div

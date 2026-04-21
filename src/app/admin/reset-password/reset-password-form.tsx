@@ -86,7 +86,7 @@ export default function ResetPasswordForm() {
         ) : !code ? (
           // No code in URL — invalid link
           <div style={{ textAlign: "center" }}>
-            <dl-text color="tertiary" style={{ display: "block", marginBottom: "1.5rem" }}>
+            <dl-text color="danger" style={{ display: "block", marginBottom: "1.5rem" }}>
               Invalid reset link. Please request a new password reset.
             </dl-text>
             <dl-button variant="primary" onClick={() => router.push("/admin")}>
@@ -96,7 +96,7 @@ export default function ResetPasswordForm() {
         ) : error && !ready ? (
           // Link expired or already used
           <div style={{ textAlign: "center" }}>
-            <dl-text color="tertiary" style={{ display: "block", marginBottom: "1.5rem" }}>
+            <dl-text color="danger" style={{ display: "block", marginBottom: "1.5rem" }}>
               {error}
             </dl-text>
             <dl-button variant="primary" onClick={() => router.push("/admin")}>
@@ -120,7 +120,7 @@ export default function ResetPasswordForm() {
                 required
                 onInput={(e: WcInputEvent) => setConfirmPassword(getEventValue(e))}
               />
-              {error && <dl-text size="300" color="tertiary">{error}</dl-text>}
+              {error && <dl-text size="300" color="danger">{error}</dl-text>}
               <dl-button variant="primary" size="md" full-width disabled={loading || undefined} onClick={handleResetPassword}>
                 {loading ? "Updating..." : "Update Password"}
               </dl-button>

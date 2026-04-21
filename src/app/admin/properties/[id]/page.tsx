@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 import { toast } from "@/components/Toast";
+import { controlBase, selectBase } from "@/components/formControlStyles";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
@@ -230,7 +231,7 @@ export default function EditProperty() {
                 type="date"
                 value={listed_at}
                 onChange={(e) => setListed_at(e.target.value)}
-                style={{ marginTop: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", boxSizing: "border-box" }}
+                style={{ ...controlBase, marginTop: "0.5rem", width: "100%" }}
               />
             </div>
 
@@ -239,7 +240,7 @@ export default function EditProperty() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                style={{ marginTop: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem" }}
+                style={{ ...selectBase, marginTop: "0.5rem", width: "100%" }}
               >
                 <option value="active">Active</option>
                 <option value="pending">Pending</option>
@@ -258,7 +259,7 @@ export default function EditProperty() {
               />
             </div>
 
-            {error && <dl-text size="300" color="tertiary">{error}</dl-text>}
+            {error && <dl-text size="300" color="danger">{error}</dl-text>}
 
             <div style={{ display: "flex", gap: "1rem" }}>
               <dl-button
