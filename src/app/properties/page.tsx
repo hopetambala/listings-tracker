@@ -2,57 +2,147 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
-import { formatPrice } from "@/lib/formatters";
 import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
+import {
+  budgetDelta,
+  currentListPrice,
+  marketSummary,
+  type ListingBundle,
+} from "@/lib/pricing";
+import { MarketSummary } from "@/components/buyer/MarketSummary";
+import { ListingCard } from "@/components/buyer/ListingCard";
+import { EmptyState } from "@/components/EmptyState";
+import { ListingCardSkeletonGrid, SummarySkeleton } from "@/components/Skeleton";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
+type Price = Database["public"]["Tables"]["listings_tracker_prices"]["Row"];
+type Photo = Database["public"]["Tables"]["listings_tracker_photos"]["Row"];
 
-const STATUS_STYLES: Record<string, { bg: string; border: string; color: string; label: string }> = {
-  active:    { bg: "#dbeafe", border: "#3b82f6", color: "#1d4ed8", label: "Active" },
-  pending:   { bg: "#fef3c7", border: "#f59e0b", color: "#92400e", label: "Pending" },
-  sold:      { bg: "#dcfce7", border: "#22c55e", color: "#166534", label: "Sold" },
-  withdrawn: { bg: "#f3f4f6", border: "#9ca3af", color: "#374151", label: "Withdrawn" },
-};
+type StatusFilter = "all" | "active" | "pending" | "sold" | "withdrawn";
+type BudgetFilter = "all" | "in_range" | "stretch" | "over";
+type SortBy = "date_desc" | "date_asc" | "price_asc" | "price_desc";
 
-function StatusBadge({ status }: { status: string | null }) {
-  const s = STATUS_STYLES[status ?? "active"] ?? STATUS_STYLES.active;
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "pending", label: "Pending" },
+  { value: "sold", label: "Sold" },
+  { value: "withdrawn", label: "Withdrawn" },
+];
+
+const BUDGET_FILTERS: { value: BudgetFilter; label: string }[] = [
+  { value: "all", label: "Any budget" },
+  { value: "in_range", label: "In range" },
+  { value: "stretch", label: "Stretch" },
+  { value: "over", label: "Over" },
+];
+
+function Chips<T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  ariaLabel: string;
+}) {
   return (
-    <span style={{
-      display: "inline-block",
-      padding: "2px 10px",
-      borderRadius: "9999px",
-      fontSize: "0.7rem",
-      fontWeight: 700,
-      letterSpacing: "0.05em",
-      textTransform: "uppercase",
-      background: s.bg,
-      border: `1.5px solid ${s.border}`,
-      color: s.color,
-    }}>
-      {s.label}
-    </span>
+    <div role="group" aria-label={ariaLabel} style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
+      {options.map((opt) => {
+        const selected = opt.value === value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            aria-pressed={selected}
+            onClick={() => onChange(opt.value)}
+            style={{
+              padding: "0.3rem 0.75rem",
+              borderRadius: "9999px",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              border: `1.5px solid ${selected ? "#0f172a" : "#e5e7eb"}`,
+              background: selected ? "#0f172a" : "white",
+              color: selected ? "white" : "#374151",
+              cursor: "pointer",
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 export default function UserProperties() {
+  return (
+    <Suspense
+      fallback={
+        <main className="page page--centered" suppressHydrationWarning>
+          <dl-spinner />
+        </main>
+      }
+    >
+      <UserPropertiesInner />
+    </Suspense>
+  );
+}
+
+function UserPropertiesInner() {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [heroImages, setHeroImages] = useState<Record<string, string>>({});
-  const [latestPrices, setLatestPrices] = useState<Record<string, number>>({});
+  const [photosByProperty, setPhotosByProperty] = useState<Record<string, Photo[]>>({});
+  const [pricesByProperty, setPricesByProperty] = useState<Record<string, Price[]>>({});
+  const [targetPrice, setTargetPrice] = useState<number | null>(null);
+  const [buyerLabel, setBuyerLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "price_asc" | "price_desc">("date_desc");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createClient();
+
+  const [sortBy, setSortBy] = useState<SortBy>(
+    (searchParams.get("sort") as SortBy) || "date_desc"
+  );
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>(
+    (searchParams.get("status") as StatusFilter) || "all"
+  );
+  const [filterBudget, setFilterBudget] = useState<BudgetFilter>(
+    (searchParams.get("budget") as BudgetFilter) || "all"
+  );
+  const [query, setQuery] = useState(searchParams.get("q") || "");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
   const [newLink, setNewLink] = useState("");
   const [newAddress, setNewAddress] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
-  const router = useRouter();
-  const supabase = createClient();
+
+  // Sync filter state to the URL (shallow, no history entry)
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (filterStatus !== "all") params.set("status", filterStatus);
+    if (filterBudget !== "all") params.set("budget", filterBudget);
+    if (sortBy !== "date_desc") params.set("sort", sortBy);
+    const qs = params.toString();
+    router.replace(qs ? `/properties?${qs}` : "/properties", { scroll: false });
+  }, [query, filterStatus, filterBudget, sortBy, router]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) return prev;
+      return [...prev, id];
+    });
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -69,15 +159,21 @@ export default function UserProperties() {
         router.push("/");
         return;
       }
+
       const { data: codeRows, error: codeError } = await supabase
         .from("listings_tracker_access_codes")
-        .select("property_id")
+        .select("property_id, target_price, buyer_label")
         .eq("code", storedCode);
       if (codeError || !codeRows || codeRows.length === 0) {
         setError("Invalid code. Please check your code and try again.");
         setLoading(false);
         return;
       }
+
+      const codeMeta = codeRows.find((r) => r.target_price != null || r.buyer_label != null) ?? codeRows[0];
+      setTargetPrice(codeMeta.target_price ?? null);
+      setBuyerLabel(codeMeta.buyer_label ?? null);
+
       const propertyIds = codeRows.map((r) => r.property_id);
       const { data: propsData, error: propError } = await supabase
         .from("listings_tracker_properties")
@@ -90,43 +186,32 @@ export default function UserProperties() {
         return;
       }
       setProperties(propsData);
-      const heroMap: Record<string, string> = {};
-      const pricesMap: Record<string, number> = {};
-      await Promise.all(
-        propsData.map(async (prop) => {
-          // Prefer key photo; fall back to first by display_order
-          const { data: keyPhotoData } = await supabase
-            .from("listings_tracker_photos")
-            .select("photo_url")
-            .eq("property_id", prop.id)
-            .eq("is_key_photo", true)
-            .limit(1);
-          if (keyPhotoData && keyPhotoData.length > 0) {
-            heroMap[prop.id] = keyPhotoData[0].photo_url;
-          } else {
-            const { data: photosData } = await supabase
-              .from("listings_tracker_photos")
-              .select("photo_url")
-              .eq("property_id", prop.id)
-              .order("display_order", { ascending: true })
-              .limit(1);
-            if (photosData && photosData.length > 0) {
-              heroMap[prop.id] = photosData[0].photo_url;
-            }
-          }
-          const { data: pricesData } = await supabase
-            .from("listings_tracker_prices")
-            .select("price")
-            .eq("property_id", prop.id)
-            .order("recorded_at", { ascending: false })
-            .limit(1);
-          if (pricesData && pricesData.length > 0) {
-            pricesMap[prop.id] = pricesData[0].price;
-          }
-        })
-      );
-      setHeroImages(heroMap);
-      setLatestPrices(pricesMap);
+
+      // Bulk-fetch all photos and prices for these properties in 2 queries total.
+      const [{ data: allPhotos }, { data: allPrices }] = await Promise.all([
+        supabase
+          .from("listings_tracker_photos")
+          .select("*")
+          .in("property_id", propertyIds)
+          .order("display_order", { ascending: true }),
+        supabase
+          .from("listings_tracker_prices")
+          .select("*")
+          .in("property_id", propertyIds)
+          .order("recorded_at", { ascending: false }),
+      ]);
+
+      const photos: Record<string, Photo[]> = {};
+      for (const photo of allPhotos ?? []) {
+        (photos[photo.property_id] ??= []).push(photo);
+      }
+      setPhotosByProperty(photos);
+
+      const prices: Record<string, Price[]> = {};
+      for (const price of allPrices ?? []) {
+        (prices[price.property_id] ??= []).push(price);
+      }
+      setPricesByProperty(prices);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load properties";
       setError(errorMessage);
@@ -147,7 +232,6 @@ export default function UserProperties() {
       if (!stored) { router.push("/"); return; }
       const { code: storedCode } = JSON.parse(stored);
 
-      // Resolve the admin who owns this code — needed for NOT NULL columns on both tables
       const { data: codeRow, error: codeRowError } = await supabase
         .from("listings_tracker_access_codes")
         .select("created_by")
@@ -171,18 +255,18 @@ export default function UserProperties() {
 
       if (propError) throw propError;
 
-      const { error: codeError } = await supabase
+      const { error: codeInsertError } = await supabase
         .from("listings_tracker_access_codes")
         .insert({ property_id: propData.id, code: storedCode, created_by: admin_id });
 
-      if (codeError) throw codeError;
+      if (codeInsertError) throw codeInsertError;
 
       setNewLink("");
       setNewAddress("");
       setNewPrice("");
       await loadData();
-    } catch (err: any) {
-      setFormError(err.message);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Failed to add listing.");
     }
     setSubmitting(false);
   }
@@ -197,6 +281,23 @@ export default function UserProperties() {
     if (filterStatus !== "all") {
       list = list.filter((p) => (p.status ?? "active") === filterStatus);
     }
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter((p) =>
+        [p.street_address, p.notes, p.mls_number]
+          .filter(Boolean)
+          .some((field) => (field as string).toLowerCase().includes(q))
+      );
+    }
+    if (filterBudget !== "all" && targetPrice && targetPrice > 0) {
+      list = list.filter((p) => {
+        const history = pricesByProperty[p.id] ?? [];
+        const isSold = p.status === "sold" && p.sold_price != null;
+        const comparePrice = isSold ? (p.sold_price as number) : currentListPrice(history, p);
+        const delta = budgetDelta(comparePrice, targetPrice);
+        return delta?.state === filterBudget;
+      });
+    }
     switch (sortBy) {
       case "price_asc":  list.sort((a, b) => a.listing_price - b.listing_price); break;
       case "price_desc": list.sort((a, b) => b.listing_price - a.listing_price); break;
@@ -204,12 +305,32 @@ export default function UserProperties() {
       case "date_desc":  list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break;
     }
     return list;
-  }, [properties, filterStatus, sortBy]);
+  }, [properties, filterStatus, filterBudget, query, sortBy, pricesByProperty, targetPrice]);
+
+  const summary = useMemo(() => {
+    const bundles: ListingBundle[] = properties.map((property) => ({
+      property,
+      priceHistory: pricesByProperty[property.id] ?? [],
+    }));
+    return marketSummary(bundles, targetPrice);
+  }, [properties, pricesByProperty, targetPrice]);
+
+  const heroFor = (propertyId: string): string | null => {
+    const photos = photosByProperty[propertyId] ?? [];
+    const key = photos.find((p) => p.is_key_photo);
+    return (key ?? photos[0])?.photo_url ?? null;
+  };
 
   if (loading) {
     return (
       <main className="page page--centered" suppressHydrationWarning>
-        <dl-spinner />
+        <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
+          <div style={{ marginBottom: "1.5rem" }}>
+            <dl-heading level={1} style={{ margin: 0 }}>Your Listings</dl-heading>
+          </div>
+          <SummarySkeleton />
+          <ListingCardSkeletonGrid count={3} />
+        </div>
       </main>
     );
   }
@@ -239,7 +360,6 @@ export default function UserProperties() {
     <main className="page page--centered">
       <div className="cl-dlite-w-full" style={{ maxWidth: "60rem", padding: "0 1rem" }}>
 
-        {/* Header row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", marginBottom: "1.5rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <dl-heading level={1} style={{ margin: 0 }}>Your Listings</dl-heading>
@@ -259,34 +379,70 @@ export default function UserProperties() {
           </dl-button>
         </div>
 
-        {/* Sort & filter controls */}
         {properties.length > 0 && (
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
-            <select
+          <MarketSummary summary={summary} buyerLabel={buyerLabel} targetPrice={targetPrice} />
+        )}
+
+        {properties.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.625rem",
+              marginBottom: "1.25rem",
+              position: "sticky",
+              top: 0,
+              zIndex: 10,
+              padding: "0.625rem 0",
+              background: "rgba(255,255,255,0.92)",
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search address, notes, or MLS…"
+                aria-label="Search listings"
+                style={{
+                  flex: "1 1 200px",
+                  padding: "0.45rem 0.75rem",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "0.375rem",
+                  fontSize: "0.875rem",
+                  background: "white",
+                }}
+              />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                aria-label="Sort listings"
+                style={{ padding: "0.45rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", background: "white" }}
+              >
+                <option value="date_desc">Newest first</option>
+                <option value="date_asc">Oldest first</option>
+                <option value="price_asc">Price: low → high</option>
+                <option value="price_desc">Price: high → low</option>
+              </select>
+            </div>
+            <Chips<StatusFilter>
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              style={{ padding: "0.4rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", background: "white" }}
-            >
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="sold">Sold</option>
-              <option value="withdrawn">Withdrawn</option>
-            </select>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              style={{ padding: "0.4rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", background: "white" }}
-            >
-              <option value="date_desc">Newest first</option>
-              <option value="date_asc">Oldest first</option>
-              <option value="price_asc">Price: low → high</option>
-              <option value="price_desc">Price: high → low</option>
-            </select>
+              options={STATUS_FILTERS}
+              onChange={setFilterStatus}
+              ariaLabel="Filter by status"
+            />
+            {targetPrice != null && targetPrice > 0 && (
+              <Chips<BudgetFilter>
+                value={filterBudget}
+                options={BUDGET_FILTERS}
+                onChange={setFilterBudget}
+                ariaLabel="Filter by budget fit"
+              />
+            )}
           </div>
         )}
 
-        {/* Add property form */}
         <dl-card style={{ marginBottom: "1.25rem" }}>
           <form onSubmit={handleAddProperty} style={{ padding: "1.25rem 1.5rem" }}>
             <dl-text size="300" color="secondary" style={{ display: "block", marginBottom: "0.75rem", fontWeight: 600 }}>
@@ -333,108 +489,107 @@ export default function UserProperties() {
         </dl-card>
 
         {displayedProperties.length === 0 ? (
-          <dl-card>
-            <div style={{ padding: "2rem", textAlign: "center" }}>
-              <dl-text color="secondary">
-                {properties.length === 0 ? "No properties available with this code." : "No properties match the current filter."}
-              </dl-text>
-            </div>
-          </dl-card>
+          properties.length === 0 ? (
+            <EmptyState
+              icon="🏠"
+              title="No listings here yet"
+              description="When your agent adds properties to this code, they'll appear here with price and market context."
+            />
+          ) : (
+            <EmptyState
+              icon="🔎"
+              title="Nothing matches"
+              description="Try clearing filters or the search to see more."
+              action={
+                <dl-button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setQuery("");
+                    setFilterStatus("all");
+                    setFilterBudget("all");
+                  }}
+                >
+                  Clear filters
+                </dl-button>
+              }
+            />
+          )
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", paddingBottom: selectedIds.length >= 2 ? "5rem" : 0 }}>
             {displayedProperties.map((prop) => (
-              <dl-card
+              <ListingCard
                 key={prop.id}
-                style={{ cursor: "pointer" }}
-                onClick={(e: React.MouseEvent<HTMLElement>) => {
-                  if (e.target instanceof HTMLElement && (e.target.closest("a") || e.target.closest("button") || e.target.closest("select"))) return;
-                  router.push(`/property/${prop.id}`);
-                }}
-              >
-                {heroImages[prop.id] && (
-                  <div style={{ position: "relative" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={heroImages[prop.id]}
-                      alt={prop.street_address || "Property"}
-                      style={{
-                        width: "100%",
-                        height: "220px",
-                        objectFit: "cover",
-                        display: "block",
-                        borderRadius: "var(--tk-dlite-semantic-border-radius-md) var(--tk-dlite-semantic-border-radius-md) 0 0",
-                      }}
-                    />
-                    {/* Status badge over image */}
-                    <div style={{ position: "absolute", top: "10px", left: "10px" }}>
-                      <StatusBadge status={prop.status} />
-                    </div>
-                    {prop.sold_price && (
-                      <div style={{
-                        position: "absolute", top: "10px", right: "10px",
-                        background: "rgba(22,101,52,0.92)", color: "white",
-                        padding: "3px 12px", borderRadius: "9999px",
-                        fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.05em",
-                      }}>
-                        SOLD ${formatPrice(prop.sold_price)}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div style={{ padding: "1.5rem" }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <dl-heading level={3}>{prop.street_address || "No address"}</dl-heading>
-                    {!heroImages[prop.id] && <StatusBadge status={prop.status} />}
-                  </div>
-                  <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-                    <dl-text color="secondary" size="300">
-                      MLS: {prop.mls_number || "N/A"} | Listed at: ${formatPrice(prop.listing_price)}
-                    </dl-text>
-                    {latestPrices[prop.id] && latestPrices[prop.id] !== prop.listing_price && (
-                      <div style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        padding: "0.5rem 1rem",
-                        backgroundColor: latestPrices[prop.id] > prop.listing_price ? "#dcfce7" : "#fecaca",
-                        borderRadius: "9999px",
-                        border: `2px solid ${latestPrices[prop.id] > prop.listing_price ? "#22c55e" : "#f87171"}`,
-                      }}>
-                        <span style={{ fontSize: "0.75rem", fontWeight: "600", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b", textTransform: "uppercase" }}>
-                          {latestPrices[prop.id] > prop.listing_price ? "↑ Increased" : "↓ Reduced"}
-                        </span>
-                        <span style={{ fontSize: "0.9rem", fontWeight: "700", color: latestPrices[prop.id] > prop.listing_price ? "#16a34a" : "#991b1b" }}>
-                          ${formatPrice(latestPrices[prop.id])}
-                          {" "}
-                          ({latestPrices[prop.id] > prop.listing_price ? "+" : "-"}${formatPrice(Math.abs(latestPrices[prop.id] - prop.listing_price))} / {((latestPrices[prop.id] - prop.listing_price) / prop.listing_price * 100).toFixed(1)}%)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  {prop.listing_link && (
-                    <dl-button
-                      variant="primary"
-                      size="sm"
-                      onClick={(e: React.MouseEvent<HTMLElement>) => {
-                        e.stopPropagation();
-                        window.open(prop.listing_link, "_blank");
-                      }}
-                      style={{ marginTop: "0.75rem" }}
-                    >
-                      View Real Estate Listing ↗
-                    </dl-button>
-                  )}
-                  {prop.notes && (
-                    <dl-text size="300" style={{ marginTop: "0.5rem" }}>
-                      {prop.notes}
-                    </dl-text>
-                  )}
-                </div>
-              </dl-card>
+                property={prop}
+                priceHistory={pricesByProperty[prop.id] ?? []}
+                heroImageUrl={heroFor(prop.id)}
+                targetPrice={targetPrice}
+                onOpen={() => router.push(`/property/${prop.id}`)}
+                compareChecked={selectedIds.includes(prop.id)}
+                compareDisabled={selectedIds.length >= 4 && !selectedIds.includes(prop.id)}
+                onToggleCompare={() => toggleSelected(prop.id)}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {selectedIds.length >= 2 && (
+        <div
+          role="region"
+          aria-label="Compare selected listings"
+          style={{
+            position: "fixed",
+            bottom: "1rem",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            gap: "0.625rem",
+            alignItems: "center",
+            padding: "0.625rem 0.875rem",
+            background: "#0f172a",
+            color: "white",
+            borderRadius: "9999px",
+            boxShadow: "0 12px 32px rgba(15, 23, 42, 0.35)",
+            zIndex: 50,
+          }}
+        >
+          <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>
+            {selectedIds.length} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => router.push(`/properties/compare?ids=${selectedIds.join(",")}`)}
+            style={{
+              padding: "0.4rem 0.9rem",
+              borderRadius: "9999px",
+              border: "none",
+              background: "white",
+              color: "#0f172a",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+            }}
+          >
+            Compare ({selectedIds.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds([])}
+            style={{
+              padding: "0.4rem 0.75rem",
+              borderRadius: "9999px",
+              border: "1px solid rgba(255,255,255,0.5)",
+              background: "transparent",
+              color: "white",
+              fontSize: "0.8rem",
+              cursor: "pointer",
+            }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
     </main>
   );
 }

@@ -17,6 +17,11 @@ export type Database = {
           sold_price: number | null;
           notes: string | null;
           status: string | null;
+          bedrooms: number | null;
+          bathrooms: number | null;
+          square_feet: number | null;
+          year_built: number | null;
+          listed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -70,6 +75,8 @@ export type Database = {
           id: string;
           property_id: string;
           code: string;
+          target_price: number | null;
+          buyer_label: string | null;
           created_at: string;
           created_by: string;
         };

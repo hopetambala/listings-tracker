@@ -19,12 +19,15 @@ import UserProperties from '../page'
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
 const mockPush = vi.fn()
+const mockReplace = vi.fn()
 // Stable reference — if useRouter() returns a new object each call,
 // useEffect([router, supabase]) re-fires on every render → infinite loop.
-const mockRouter = { push: mockPush }
+const mockRouter = { push: mockPush, replace: mockReplace }
 
+const emptySearchParams = new URLSearchParams()
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
+  useSearchParams: () => emptySearchParams,
 }))
 
 /**

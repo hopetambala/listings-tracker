@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
+import { toast } from "@/components/Toast";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 
@@ -20,6 +21,11 @@ export default function EditProperty() {
   const [sold_price, setSold_price] = useState("");
   const [status, setStatus] = useState("active");
   const [notes, setNotes] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
+  const [square_feet, setSquare_feet] = useState("");
+  const [year_built, setYear_built] = useState("");
+  const [listed_at, setListed_at] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -57,6 +63,11 @@ export default function EditProperty() {
       setSold_price(data.sold_price ? String(data.sold_price) : "");
       setStatus(data.status ?? "active");
       setNotes(data.notes || "");
+      setBedrooms(data.bedrooms != null ? String(data.bedrooms) : "");
+      setBathrooms(data.bathrooms != null ? String(data.bathrooms) : "");
+      setSquare_feet(data.square_feet != null ? String(data.square_feet) : "");
+      setYear_built(data.year_built != null ? String(data.year_built) : "");
+      setListed_at(data.listed_at || "");
       setLoading(false);
     }
     loadData();
@@ -78,13 +89,20 @@ export default function EditProperty() {
           sold_price: sold_price ? parseFloat(sold_price) : null,
           status,
           notes: notes || null,
+          bedrooms: bedrooms ? parseInt(bedrooms, 10) : null,
+          bathrooms: bathrooms ? parseFloat(bathrooms) : null,
+          square_feet: square_feet ? parseInt(square_feet, 10) : null,
+          year_built: year_built ? parseInt(year_built, 10) : null,
+          listed_at: listed_at || null,
         })
         .eq("id", propertyId);
 
       if (error) throw error;
+      toast.success("Property saved.");
       router.push("/admin/properties");
     } catch (err: any) {
       setError(err.message);
+      toast.error("Couldn't save property.");
       setSaving(false);
     }
   }
@@ -160,6 +178,59 @@ export default function EditProperty() {
                 value={sold_price}
                 style={{ marginTop: "0.5rem" }}
                 onInput={(e: WcInputEvent) => setSold_price(getEventValue(e))}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem" }}>
+              <div>
+                <dl-text size="300" color="secondary">Bedrooms</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="3"
+                  value={bedrooms}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setBedrooms(getEventValue(e))}
+                />
+              </div>
+              <div>
+                <dl-text size="300" color="secondary">Bathrooms</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="2.5"
+                  value={bathrooms}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setBathrooms(getEventValue(e))}
+                />
+              </div>
+              <div>
+                <dl-text size="300" color="secondary">Square feet</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="1850"
+                  value={square_feet}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setSquare_feet(getEventValue(e))}
+                />
+              </div>
+              <div>
+                <dl-text size="300" color="secondary">Year built</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="1995"
+                  value={year_built}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setYear_built(getEventValue(e))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <dl-text size="300" color="secondary">Listed on</dl-text>
+              <input
+                type="date"
+                value={listed_at}
+                onChange={(e) => setListed_at(e.target.value)}
+                style={{ marginTop: "0.5rem", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #e5e7eb", borderRadius: "0.375rem", fontSize: "0.875rem", boxSizing: "border-box" }}
               />
             </div>
 

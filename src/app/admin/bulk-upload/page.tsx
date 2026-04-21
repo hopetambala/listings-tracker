@@ -6,8 +6,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateCode } from "@/lib/api/code-utils";
-import { parseCSV, getCSVTemplate } from "@/lib/api/csv-parser";
+import { parseCSV, getCSVTemplate, type PropertyRow } from "@/lib/api/csv-parser";
 import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
+import { toast } from "@/components/Toast";
 
 interface BulkResult {
   property_id: string;
@@ -26,6 +27,7 @@ export default function BulkUpload() {
   const [results, setResults] = useState<BulkResult[]>([]);
   const [errors, setErrors] = useState<{ row: number; error: string }[]>([]);
   const [showTemplate, setShowTemplate] = useState(false);
+  const [preview, setPreview] = useState<PropertyRow[] | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -39,22 +41,31 @@ export default function BulkUpload() {
     checkAuth();
   }, [router, supabase.auth]);
 
-  async function handleUpload() {
-    if (!csvText.trim()) {
-      alert("Please paste or upload CSV data");
-      return;
-    }
-
+  function handlePreview() {
     setErrors([]);
     setResults([]);
-    setUploading(true);
-
+    setPreview(null);
+    if (!csvText.trim()) {
+      toast.error("Paste or upload CSV data first.");
+      return;
+    }
     const parseResult = parseCSV(csvText);
     if (!parseResult.success) {
       setErrors(parseResult.errors);
-      setUploading(false);
+      toast.error("CSV has errors — see below.");
       return;
     }
+    setPreview(parseResult.data);
+  }
+
+  async function handleUpload() {
+    if (!preview) {
+      handlePreview();
+      return;
+    }
+    setErrors([]);
+    setResults([]);
+    setUploading(true);
 
     // Check for duplicate URLs already in the DB for this admin
     const { data: existingProps } = await supabase
@@ -66,7 +77,7 @@ export default function BulkUpload() {
     try {
       const results: BulkResult[] = [];
 
-      for (const row of parseResult.data) {
+      for (const row of preview) {
         // Duplicate detection
         if (existingUrls.has(row.listing_link)) {
           results.push({
@@ -125,8 +136,16 @@ export default function BulkUpload() {
 
       setResults(results);
       setCsvText("");
+      setPreview(null);
+      const created = results.filter((r) => !r.error).length;
+      const failed = results.filter((r) => r.error && !r.duplicate).length;
+      if (failed === 0) {
+        toast.success(`Uploaded ${created} propert${created === 1 ? "y" : "ies"}.`);
+      } else {
+        toast.error(`${failed} of ${results.length} failed — see results.`);
+      }
     } catch (err: any) {
-      alert("Error uploading: " + err.message);
+      toast.error("Error uploading: " + err.message);
     } finally {
       setUploading(false);
     }
@@ -190,7 +209,11 @@ export default function BulkUpload() {
                 placeholder={getCSVTemplate()}
                 value={csvText}
                 style={{ marginTop: "0.5rem", minHeight: "200px", fontFamily: "monospace", fontSize: "0.875rem" }}
-                onInput={(e: WcInputEvent) => setCsvText(getEventValue(e))}
+                onInput={(e: WcInputEvent) => {
+                  setCsvText(getEventValue(e));
+                  setPreview(null);
+                  setErrors([]);
+                }}
               />
             </div>
 
@@ -209,10 +232,56 @@ export default function BulkUpload() {
               </dl-card>
             )}
 
+            {preview && (
+              <dl-card style={{ marginTop: "1rem" }}>
+                <div style={{ padding: "1rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                    <dl-heading level={3} style={{ margin: 0 }}>Preview: {preview.length} {preview.length === 1 ? "row" : "rows"}</dl-heading>
+                    <dl-button variant="ghost" size="sm" onClick={() => setPreview(null)}>
+                      Edit CSV
+                    </dl-button>
+                  </div>
+                  <div style={{ overflowX: "auto", border: "1px solid #e5e7eb", borderRadius: "0.375rem" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+                      <thead style={{ background: "#f8fafc" }}>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>Address</th>
+                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>Price</th>
+                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>MLS</th>
+                          <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid #e5e7eb" }}>Link</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {preview.slice(0, 10).map((row, i) => (
+                          <tr key={i}>
+                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9" }}>{row.street_address || "—"}</td>
+                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9" }}>${Number(row.listing_price).toLocaleString()}</td>
+                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9" }}>{row.mls_number || "—"}</td>
+                            <td style={{ padding: "0.5rem 0.75rem", borderBottom: "1px solid #f1f5f9", maxWidth: "16rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.listing_link}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {preview.length > 10 && (
+                      <div style={{ padding: "0.5rem 0.75rem", background: "#f8fafc", fontSize: "0.8rem", color: "#64748b" }}>
+                        …and {preview.length - 10} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </dl-card>
+            )}
+
             <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
-              <dl-button variant="primary" size="md" full-width disabled={uploading || undefined} onClick={handleUpload}>
-                {uploading ? "Uploading..." : "Upload Properties"}
-              </dl-button>
+              {!preview ? (
+                <dl-button variant="primary" size="md" full-width disabled={uploading || undefined} onClick={handlePreview}>
+                  Preview CSV
+                </dl-button>
+              ) : (
+                <dl-button variant="primary" size="md" full-width disabled={uploading || undefined} onClick={handleUpload}>
+                  {uploading ? "Uploading..." : `Confirm upload (${preview.length})`}
+                </dl-button>
+              )}
               <dl-button variant="secondary" size="md" full-width onClick={() => router.push("/admin/dashboard")}>
                 Cancel
               </dl-button>

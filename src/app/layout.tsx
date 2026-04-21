@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import DliteProvider from "@/dlite-design-system/DliteProvider";
+import { ToastContainer } from "@/components/Toast";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <DliteProvider>{children}</DliteProvider>
+        <ToastContainer />
       </body>
     </html>
   );

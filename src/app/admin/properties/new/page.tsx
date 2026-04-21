@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { generateCode } from "@/lib/api/code-utils";
 import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
+import { toast } from "@/components/Toast";
 
 export default function NewProperty() {
   const [_user, setUser] = useState<any>(null);
@@ -16,8 +17,14 @@ export default function NewProperty() {
   const [listing_price, setListing_price] = useState("");
   const [status, setStatus] = useState("active");
   const [notes, setNotes] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
+  const [square_feet, setSquare_feet] = useState("");
+  const [year_built, setYear_built] = useState("");
   const [existingCode, setExistingCode] = useState("");
   const [existingCodes, setExistingCodes] = useState<string[]>([]);
+  const [target_price, setTarget_price] = useState("");
+  const [buyer_label, setBuyer_label] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +70,9 @@ export default function NewProperty() {
 
     try {
       // Use existing code or generate a new one
-      const code = existingCode.trim() || generateCode();
+      const trimmedCode = existingCode.trim();
+      const code = trimmedCode || generateCode();
+      const isNewCode = !trimmedCode;
 
       // Insert property
       const { data: propData, error: propError } = await supabase
@@ -76,28 +85,45 @@ export default function NewProperty() {
           listing_price: parseFloat(listing_price),
           status,
           notes: notes || null,
+          bedrooms: bedrooms ? parseInt(bedrooms, 10) : null,
+          bathrooms: bathrooms ? parseFloat(bathrooms) : null,
+          square_feet: square_feet ? parseInt(square_feet, 10) : null,
+          year_built: year_built ? parseInt(year_built, 10) : null,
+          listed_at: new Date().toISOString().slice(0, 10),
         })
         .select()
         .single();
 
       if (propError) throw propError;
 
-      // Insert code
+      // Insert code row. When creating a brand-new code, stamp target_price + buyer_label
+      // so the buyer dashboard can show budget context.
+      const codeInsert: {
+        property_id: string;
+        code: string;
+        created_by: string;
+        target_price?: number | null;
+        buyer_label?: string | null;
+      } = {
+        property_id: propData.id,
+        code,
+        created_by: _user.id,
+      };
+      if (isNewCode) {
+        codeInsert.target_price = target_price ? parseFloat(target_price) : null;
+        codeInsert.buyer_label = buyer_label.trim() || null;
+      }
       const { error: codeError } = await supabase
         .from("listings_tracker_access_codes")
-        .insert({
-          property_id: propData.id,
-          code,
-          created_by: _user.id,
-        });
+        .insert(codeInsert);
 
       if (codeError) throw codeError;
 
-      // Show code to admin
-      alert(`Property created! Share this 4-digit code: ${code}`);
+      toast.success(`Property created. Code: ${code}`);
       router.push("/admin/properties");
     } catch (err: any) {
       setError(err.message);
+      toast.error("Couldn't create property.");
       setSaving(false);
     }
   }
@@ -165,6 +191,49 @@ export default function NewProperty() {
               />
             </div>
 
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem" }}>
+              <div>
+                <dl-text size="300" color="secondary">Bedrooms</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="3"
+                  value={bedrooms}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setBedrooms(getEventValue(e))}
+                />
+              </div>
+              <div>
+                <dl-text size="300" color="secondary">Bathrooms</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="2.5"
+                  value={bathrooms}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setBathrooms(getEventValue(e))}
+                />
+              </div>
+              <div>
+                <dl-text size="300" color="secondary">Square feet</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="1850"
+                  value={square_feet}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setSquare_feet(getEventValue(e))}
+                />
+              </div>
+              <div>
+                <dl-text size="300" color="secondary">Year built</dl-text>
+                <dl-input
+                  type="number"
+                  placeholder="1995"
+                  value={year_built}
+                  style={{ marginTop: "0.5rem" }}
+                  onInput={(e: WcInputEvent) => setYear_built(getEventValue(e))}
+                />
+              </div>
+            </div>
+
             <div>
               <dl-text size="300" color="secondary">Status</dl-text>
               <select
@@ -229,6 +298,34 @@ export default function NewProperty() {
                 </div>
               )}
             </div>
+
+            {!existingCode.trim() && (
+              <div style={{ padding: "1rem", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "0.5rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                <dl-text size="300" color="secondary" style={{ fontWeight: 600 }}>
+                  For this new code (optional)
+                </dl-text>
+                <div>
+                  <dl-text size="300" color="secondary">Buyer label</dl-text>
+                  <dl-input
+                    type="text"
+                    placeholder="e.g. The Johnsons"
+                    value={buyer_label}
+                    style={{ marginTop: "0.5rem" }}
+                    onInput={(e: WcInputEvent) => setBuyer_label(getEventValue(e))}
+                  />
+                </div>
+                <div>
+                  <dl-text size="300" color="secondary">Target price / budget</dl-text>
+                  <dl-input
+                    type="number"
+                    placeholder="e.g. 950000"
+                    value={target_price}
+                    style={{ marginTop: "0.5rem" }}
+                    onInput={(e: WcInputEvent) => setTarget_price(getEventValue(e))}
+                  />
+                </div>
+              </div>
+            )}
 
             {error && <dl-text size="300" color="tertiary">{error}</dl-text>}
 

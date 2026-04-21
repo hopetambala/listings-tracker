@@ -6,6 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/formatters";
+import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
+import { toast } from "@/components/Toast";
+import { EmptyState } from "@/components/EmptyState";
 
 interface CodeRow {
   id: string;
@@ -20,6 +23,8 @@ interface CodeRow {
 interface CodeGroup {
   code: string;
   properties: CodeRow[];
+  target_price: number | null;
+  buyer_label: string | null;
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -30,6 +35,11 @@ export default function AdminCodes() {
   const [groups, setGroups] = useState<CodeGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [editTargetPrice, setEditTargetPrice] = useState("");
+  const [editBuyerLabel, setEditBuyerLabel] = useState("");
+  const [savingCode, setSavingCode] = useState<string | null>(null);
+  const [editError, setEditError] = useState<{ code: string; msg: string } | null>(null);
   const router = useRouter();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => createClient(), []);
@@ -41,7 +51,7 @@ export default function AdminCodes() {
 
       const { data: codeRows } = await supabase
         .from("listings_tracker_access_codes")
-        .select("id, code, property_id")
+        .select("id, code, property_id, target_price, buyer_label")
         .eq("created_by", user.id)
         .order("created_at", { ascending: false });
 
@@ -65,6 +75,16 @@ export default function AdminCodes() {
         status: propMap[c.property_id]?.status ?? "active",
       }));
 
+      // Use the first non-null target/label for each code.
+      const metaByCode = new Map<string, { target_price: number | null; buyer_label: string | null }>();
+      for (const c of codeRows) {
+        const existing = metaByCode.get(c.code);
+        metaByCode.set(c.code, {
+          target_price: existing?.target_price ?? c.target_price ?? null,
+          buyer_label: existing?.buyer_label ?? c.buyer_label ?? null,
+        });
+      }
+
       // Group by code, preserving first-seen order
       const groupMap = new Map<string, CodeRow[]>();
       rows.forEach((row) => {
@@ -72,7 +92,10 @@ export default function AdminCodes() {
         groupMap.get(row.code)!.push(row);
       });
 
-      setGroups([...groupMap.entries()].map(([code, properties]) => ({ code, properties })));
+      setGroups([...groupMap.entries()].map(([code, properties]) => {
+        const meta = metaByCode.get(code) ?? { target_price: null, buyer_label: null };
+        return { code, properties, target_price: meta.target_price, buyer_label: meta.buyer_label };
+      }));
       setLoading(false);
     }
     loadData();
@@ -83,7 +106,46 @@ export default function AdminCodes() {
       await navigator.clipboard.writeText(code);
       setCopiedCode(code);
       setTimeout(() => setCopiedCode(null), 1500);
-    } catch { }
+      toast.success(`Code ${code} copied.`);
+    } catch {
+      toast.error("Couldn't copy to clipboard.");
+    }
+  }
+
+  function startEdit(group: CodeGroup) {
+    setEditingCode(group.code);
+    setEditTargetPrice(group.target_price != null ? String(group.target_price) : "");
+    setEditBuyerLabel(group.buyer_label ?? "");
+    setEditError(null);
+  }
+
+  async function saveEdit(code: string) {
+    const parsedTarget = editTargetPrice.trim() ? parseFloat(editTargetPrice) : null;
+    if (parsedTarget != null && (!Number.isFinite(parsedTarget) || parsedTarget <= 0)) {
+      setEditError({ code, msg: "Enter a valid target price or leave blank." });
+      return;
+    }
+    setSavingCode(code);
+    setEditError(null);
+    const labelValue = editBuyerLabel.trim() || null;
+    const { error } = await supabase
+      .from("listings_tracker_access_codes")
+      .update({ target_price: parsedTarget, buyer_label: labelValue })
+      .eq("code", code);
+    if (error) {
+      setEditError({ code, msg: error.message });
+      toast.error("Couldn't save buyer details.");
+      setSavingCode(null);
+      return;
+    }
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.code === code ? { ...g, target_price: parsedTarget, buyer_label: labelValue } : g
+      )
+    );
+    setSavingCode(null);
+    setEditingCode(null);
+    toast.success("Buyer details saved.");
   }
 
   if (loading) {
@@ -104,19 +166,27 @@ export default function AdminCodes() {
         </dl-text>
 
         {groups.length === 0 ? (
-          <dl-card>
-            <div style={{ padding: "2rem", textAlign: "center" }}>
-              <dl-text color="secondary">No access codes yet. Create a property to generate one.</dl-text>
-            </div>
-          </dl-card>
+          <EmptyState
+            icon="🔑"
+            title="No access codes yet"
+            description="Create a property and a 4-digit code will be generated for your buyer."
+            action={
+              <dl-button variant="primary" size="md" onClick={() => router.push("/admin/properties/new")}>
+                + Create a property
+              </dl-button>
+            }
+          />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {groups.map(({ code, properties }) => (
+            {groups.map((group) => {
+              const { code, properties, target_price, buyer_label } = group;
+              const isEditing = editingCode === code;
+              return (
               <dl-card key={code}>
                 <div style={{ padding: "1.25rem 1.5rem" }}>
                   {/* Code header */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                       <span style={{ fontFamily: "monospace", fontSize: "1.75rem", fontWeight: 800, letterSpacing: "0.15em", color: "#111827" }}>
                         {code}
                       </span>
@@ -124,14 +194,84 @@ export default function AdminCodes() {
                         {properties.length} {properties.length === 1 ? "property" : "properties"}
                       </dl-text>
                     </div>
-                    <dl-button
-                      variant={copiedCode === code ? "primary" : "secondary"}
-                      size="sm"
-                      onClick={() => copyCode(code)}
-                    >
-                      {copiedCode === code ? "Copied!" : "Copy Code"}
-                    </dl-button>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <dl-button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => (isEditing ? setEditingCode(null) : startEdit(group))}
+                        disabled={savingCode === code || undefined}
+                      >
+                        {isEditing ? "Cancel" : "Edit buyer"}
+                      </dl-button>
+                      <dl-button
+                        variant={copiedCode === code ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => copyCode(code)}
+                      >
+                        {copiedCode === code ? "Copied!" : "Copy Code"}
+                      </dl-button>
+                    </div>
                   </div>
+
+                  {/* Buyer meta: label + target */}
+                  {!isEditing ? (
+                    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1rem" }}>
+                      <dl-text size="300" color="secondary">
+                        {buyer_label ? buyer_label : <em>No buyer label</em>}
+                      </dl-text>
+                      <dl-text size="300" color="secondary">
+                        {target_price ? `Budget $${formatPrice(target_price)}` : <em>No target price</em>}
+                      </dl-text>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "0.75rem",
+                        flexWrap: "wrap",
+                        alignItems: "flex-end",
+                        marginBottom: "1rem",
+                        padding: "0.75rem",
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "0.5rem",
+                      }}
+                    >
+                      <div style={{ flex: "1 1 180px" }}>
+                        <dl-text size="300" color="secondary">Buyer label</dl-text>
+                        <dl-input
+                          type="text"
+                          placeholder="e.g. The Johnsons"
+                          value={editBuyerLabel}
+                          style={{ marginTop: "0.25rem" }}
+                          onInput={(e: WcInputEvent) => setEditBuyerLabel(getEventValue(e))}
+                        />
+                      </div>
+                      <div style={{ flex: "1 1 180px" }}>
+                        <dl-text size="300" color="secondary">Target price</dl-text>
+                        <dl-input
+                          type="number"
+                          placeholder="e.g. 950000"
+                          value={editTargetPrice}
+                          style={{ marginTop: "0.25rem" }}
+                          onInput={(e: WcInputEvent) => setEditTargetPrice(getEventValue(e))}
+                        />
+                      </div>
+                      <dl-button
+                        variant="primary"
+                        size="sm"
+                        disabled={savingCode === code || undefined}
+                        onClick={() => saveEdit(code)}
+                      >
+                        {savingCode === code ? "Saving..." : "Save"}
+                      </dl-button>
+                      {editError?.code === code && (
+                        <dl-text size="300" color="danger" style={{ width: "100%" }}>
+                          {editError.msg}
+                        </dl-text>
+                      )}
+                    </div>
+                  )}
 
                   {/* Property list */}
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -179,7 +319,8 @@ export default function AdminCodes() {
                   </div>
                 </div>
               </dl-card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/lib/supabase/types";
 import { getEventValue, WcInputEvent } from "@/dlite-design-system/wc-helpers";
 import { formatPrice } from "@/lib/formatters";
+import { originalListPrice, overAskPct, budgetDelta } from "@/lib/pricing";
+import { toast } from "@/components/Toast";
 
 type Property = Database["public"]["Tables"]["listings_tracker_properties"]["Row"];
 type Price = Database["public"]["Tables"]["listings_tracker_prices"]["Row"];
@@ -45,7 +47,7 @@ function InlineError({ msg }: { msg: string }) {
   );
 }
 
-function PriceChart({ prices }: { prices: Price[] }) {
+function PriceChart({ prices, soldPrice }: { prices: Price[]; soldPrice?: number | null }) {
   if (prices.length < 2) return null;
   const sorted = [...prices].reverse(); // chronological order
   const vals = sorted.map((p) => p.price);
@@ -62,6 +64,10 @@ function PriceChart({ prices }: { prices: Price[] }) {
     .join(" ");
   const isUp = sorted[sorted.length - 1].price >= sorted[0].price;
   const color = isUp ? "#22c55e" : "#ef4444";
+  const firstX = PAD;
+  const firstY = PAD + (1 - (sorted[0].price - min) / range) * (H - PAD * 2);
+  const lastX = PAD + (W - PAD * 2);
+  const lastY = PAD + (1 - (sorted[sorted.length - 1].price - min) / range) * (H - PAD * 2);
   return (
     <div style={{ marginTop: "1rem" }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
@@ -71,6 +77,16 @@ function PriceChart({ prices }: { prices: Price[] }) {
           const y = PAD + (1 - (p.price - min) / range) * (H - PAD * 2);
           return <circle key={i} cx={x} cy={y} r="3.5" fill={color} />;
         })}
+        {/* Original ask marker */}
+        <circle cx={firstX} cy={firstY} r="5" fill="white" stroke="#2563eb" strokeWidth="2" />
+        <text x={firstX + 6} y={firstY - 6} fontSize="9" fill="#2563eb" fontWeight={600}>Ask</text>
+        {/* Sold marker */}
+        {soldPrice != null && (
+          <>
+            <circle cx={lastX} cy={lastY} r="5" fill="#166534" stroke="white" strokeWidth="2" />
+            <text x={lastX - 24} y={lastY - 6} fontSize="9" fill="#166534" fontWeight={600}>Sold</text>
+          </>
+        )}
       </svg>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "#9ca3af", marginTop: "2px" }}>
         <span>${formatPrice(min)}</span>
@@ -142,6 +158,13 @@ export default function PropertyDetail() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
+  // Buyer budget context (from access code)
+  const [targetPrice, setTargetPrice] = useState<number | null>(null);
+
+  // Drag state (both upload drop-zone and reorder)
+  const [isDroppingFiles, setIsDroppingFiles] = useState(false);
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+
   const router = useRouter();
   const params = useParams();
   const propertyId = params.id as string;
@@ -159,6 +182,7 @@ export default function PropertyDetail() {
         const { data: codeData } = await supabase
           .from("listings_tracker_access_codes").select("*").eq("code", code).eq("property_id", propertyId).single();
         if (!codeData) { router.push("/properties"); return; }
+        setTargetPrice(codeData.target_price ?? null);
         setProperty(prop);
         setNewAddress(prop.street_address || "");
         setNewNotes(prop.notes || "");
@@ -186,7 +210,8 @@ export default function PropertyDetail() {
       if (error) throw error;
       setProperty({ ...property!, street_address: newAddress });
       setEditingAddress(false);
-    } catch (err: any) { setAddressError(err.message); }
+      toast.success("Address updated.");
+    } catch (err: any) { setAddressError(err.message); toast.error("Couldn't update address."); }
     finally { setSavingAddress(false); }
   }
 
@@ -197,7 +222,8 @@ export default function PropertyDetail() {
       if (error) throw error;
       setProperty({ ...property!, status: newStatus });
       setEditingStatus(false);
-    } catch { /* silent — status is non-critical */ }
+      toast.success("Status updated.");
+    } catch { toast.error("Couldn't update status."); }
     finally { setSavingStatus(false); }
   }
 
@@ -208,7 +234,8 @@ export default function PropertyDetail() {
       if (error) throw error;
       setProperty({ ...property!, notes: newNotes });
       setEditingNotes(false);
-    } catch (err: any) { setNotesError(err.message); }
+      toast.success("Notes saved.");
+    } catch (err: any) { setNotesError(err.message); toast.error("Couldn't save notes."); }
     finally { setSavingNotes(false); }
   }
 
@@ -220,7 +247,8 @@ export default function PropertyDetail() {
       if (error) throw error;
       setProperty({ ...property!, listing_link: newLink });
       setEditingLink(false);
-    } catch (err: any) { setLinkError(err.message); }
+      toast.success("Listing link updated.");
+    } catch (err: any) { setLinkError(err.message); toast.error("Couldn't update link."); }
     finally { setSavingLink(false); }
   }
 
@@ -236,7 +264,8 @@ export default function PropertyDetail() {
       setPrices(data || []);
       setNewPrice("");
       setPriceDate("");
-    } catch (err: any) { setPriceError(err.message); }
+      toast.success("Price recorded.");
+    } catch (err: any) { setPriceError(err.message); toast.error("Couldn't record price."); }
     finally { setAddingPrice(false); }
   }
 
@@ -245,12 +274,15 @@ export default function PropertyDetail() {
     setPhotoError("");
   }
 
-  async function handleUploadPhotos() {
-    if (selectedFiles.length === 0) { setPhotoError("Please select at least one file."); return; }
+  async function uploadFiles(files: File[]) {
+    if (files.length === 0) return;
     setUploading(true); setPhotoError("");
     try {
       const uploaded: Photo[] = [];
-      for (const file of selectedFiles) {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) {
+          throw new Error(`${file.name} is not an image.`);
+        }
         const filename = `${propertyId}/${Date.now()}-${Math.random()}-${file.name}`;
         const { error: uploadError } = await supabase.storage.from("listings-tracker-photos").upload(filename, file);
         if (uploadError) throw new Error(`Storage error: ${uploadError.message}`);
@@ -263,11 +295,42 @@ export default function PropertyDetail() {
         if (photoRecord) uploaded.push(photoRecord);
       }
       setPhotos([...photos, ...uploaded]);
-      setSelectedFiles([]);
-      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-      if (fileInput) fileInput.value = "";
-    } catch (err: any) { setPhotoError(err.message); }
+      if (uploaded.length > 0) {
+        toast.success(`Uploaded ${uploaded.length} photo${uploaded.length === 1 ? "" : "s"}.`);
+      }
+    } catch (err: any) { setPhotoError(err.message); toast.error("Couldn't upload photo."); }
     finally { setUploading(false); }
+  }
+
+  async function handleUploadPhotos() {
+    if (selectedFiles.length === 0) { setPhotoError("Please select at least one file."); return; }
+    await uploadFiles(selectedFiles);
+    setSelectedFiles([]);
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
+  }
+
+  async function handleReorderPhoto(fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    if (fromIndex < 0 || toIndex < 0 || fromIndex >= photos.length || toIndex >= photos.length) return;
+    const reordered = [...photos];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    // Assign fresh display_order values so the new sequence is durable.
+    const updates = reordered.map((p, i) => ({ ...p, display_order: i }));
+    setPhotos(updates); // optimistic
+    setPhotoActionError("");
+    try {
+      for (const photo of updates) {
+        const { error } = await supabase
+          .from("listings_tracker_photos")
+          .update({ display_order: photo.display_order })
+          .eq("id", photo.id);
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      setPhotoActionError(err.message);
+    }
   }
 
   async function handleDeletePhoto(photo: Photo) {
@@ -280,7 +343,8 @@ export default function PropertyDetail() {
       const { error } = await supabase.from("listings_tracker_photos").delete().eq("id", photo.id);
       if (error) throw error;
       setPhotos(photos.filter((p) => p.id !== photo.id));
-    } catch (err: any) { setPhotoActionError(err.message); }
+      toast.success("Photo deleted.");
+    } catch (err: any) { setPhotoActionError(err.message); toast.error("Couldn't delete photo."); }
     finally { setDeletingPhotoId(null); }
   }
 
@@ -292,7 +356,8 @@ export default function PropertyDetail() {
       const { error } = await supabase.from("listings_tracker_photos").update({ is_key_photo: true }).eq("id", photoId);
       if (error) throw error;
       setPhotos(photos.map((p) => ({ ...p, is_key_photo: p.id === photoId })));
-    } catch (err: any) { setPhotoActionError(err.message); }
+      toast.success("Key photo updated.");
+    } catch (err: any) { setPhotoActionError(err.message); toast.error("Couldn't set key photo."); }
     finally { setSettingKeyPhoto(false); }
   }
 
@@ -323,13 +388,26 @@ export default function PropertyDetail() {
       if (error) throw error;
       setPhotos(photos.map((p) => p.id === photoId ? { ...p, notes: captionText || null } : p));
       setEditingCaptionId(null);
-    } catch { /* silent */ }
+      toast.success("Caption saved.");
+    } catch { toast.error("Couldn't save caption."); }
     finally { setSavingCaption(false); }
   }
 
   const openGallery = (index: number) => { setGalleryIndex(index); setGalleryOpen(true); };
   const nextPhoto = () => setGalleryIndex((p) => (p + 1) % photos.length);
   const prevPhoto = () => setGalleryIndex((p) => (p - 1 + photos.length) % photos.length);
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setGalleryOpen(false);
+      else if (e.key === "ArrowRight") nextPhoto();
+      else if (e.key === "ArrowLeft") prevPhoto();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [galleryOpen]);
 
   if (loading) {
     return <main className="page page--centered"><dl-spinner /></main>;
@@ -341,6 +419,11 @@ export default function PropertyDetail() {
   const currentPrice = prices.length > 0 ? prices[0].price : property.listing_price;
   const priceChange = currentPrice - property.listing_price;
   const priceChangePercent = ((priceChange / property.listing_price) * 100).toFixed(1);
+  const originalAsk = originalListPrice(prices, property);
+  const isSold = property.status === "sold" && property.sold_price != null;
+  const askDelta = isSold ? overAskPct(property.sold_price as number, originalAsk) : null;
+  const budgetComparePrice = isSold ? (property.sold_price as number) : currentPrice;
+  const budget = budgetDelta(budgetComparePrice, targetPrice);
 
   return (
     <main className="page page--centered">
@@ -409,14 +492,21 @@ export default function PropertyDetail() {
                 <dl-text style={{ marginTop: "0.25rem" }}>{property.mls_number || "N/A"}</dl-text>
               </div>
               <div>
-                <dl-text size="300" color="secondary">Listed Price</dl-text>
-                <dl-text style={{ marginTop: "0.25rem" }}>${formatPrice(property.listing_price)}</dl-text>
+                <dl-text size="300" color="secondary">Original Ask</dl-text>
+                <dl-text style={{ marginTop: "0.25rem" }}>${formatPrice(originalAsk)}</dl-text>
               </div>
               <div>
                 <dl-text size="300" color="secondary">Current Price</dl-text>
                 <dl-text style={{ marginTop: "0.25rem", fontSize: "1.1rem", fontWeight: "bold" }}>
                   ${formatPrice(currentPrice)}
                 </dl-text>
+                {budget && (
+                  <dl-text size="300" color="secondary" style={{ display: "block", marginTop: "0.125rem", fontSize: "0.75rem" }}>
+                    {budget.state === "in_range" && budget.deltaDollars <= 0 && `$${formatPrice(Math.abs(budget.deltaDollars))} under your budget`}
+                    {budget.state === "stretch" && `$${formatPrice(budget.deltaDollars)} over your budget (stretch)`}
+                    {budget.state === "over" && `$${formatPrice(budget.deltaDollars)} over your budget`}
+                  </dl-text>
+                )}
               </div>
               <div>
                 <dl-text size="300" color="secondary">Change</dl-text>
@@ -428,6 +518,11 @@ export default function PropertyDetail() {
                 <div>
                   <dl-text size="300" color="secondary">Sold Price</dl-text>
                   <dl-text style={{ marginTop: "0.25rem" }}>${formatPrice(property.sold_price)}</dl-text>
+                  {askDelta != null && (
+                    <dl-text size="300" style={{ display: "block", marginTop: "0.125rem", fontSize: "0.75rem", color: askDelta >= 0 ? "#9a3412" : "#166534", fontWeight: 600 }}>
+                      {askDelta >= 0 ? "+" : ""}{askDelta.toFixed(1)}% {askDelta >= 0 ? "over" : "under"} ask
+                    </dl-text>
+                  )}
                 </div>
               )}
             </div>
@@ -487,7 +582,7 @@ export default function PropertyDetail() {
             <InlineError msg={priceError} />
             {prices.length > 0 && (
               <>
-                <PriceChart prices={prices} />
+                <PriceChart prices={prices} soldPrice={property.sold_price} />
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "1rem" }}>
                   {prices.slice(0, 10).map((price, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
@@ -538,7 +633,40 @@ export default function PropertyDetail() {
         <dl-card style={{ marginBottom: "1.5rem" }}>
           <div style={{ padding: "1.5rem" }}>
             <dl-heading level={2} style={{ marginBottom: "1rem" }}>Photos</dl-heading>
-            <div style={{ marginBottom: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+
+            <div
+              onDragOver={(e) => {
+                if (Array.from(e.dataTransfer.types).includes("Files")) {
+                  e.preventDefault();
+                  if (!isDroppingFiles) setIsDroppingFiles(true);
+                }
+              }}
+              onDragLeave={(e) => {
+                if (e.currentTarget === e.target) setIsDroppingFiles(false);
+              }}
+              onDrop={async (e) => {
+                e.preventDefault();
+                setIsDroppingFiles(false);
+                const files = Array.from(e.dataTransfer.files || []).filter((f) => f.type.startsWith("image/"));
+                if (files.length > 0) {
+                  await uploadFiles(files);
+                }
+              }}
+              style={{
+                marginBottom: "1.25rem",
+                padding: "0.75rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.75rem",
+                border: `2px dashed ${isDroppingFiles ? "#3b82f6" : "#cbd5e1"}`,
+                borderRadius: "0.5rem",
+                background: isDroppingFiles ? "#eff6ff" : "transparent",
+                transition: "background 120ms, border-color 120ms",
+              }}
+            >
+              <dl-text size="300" color="secondary">
+                Drag &amp; drop image files here, or choose files below.
+              </dl-text>
               <input
                 type="file" multiple accept="image/*" onChange={handleFileChange}
                 style={{ padding: "0.5rem", border: "1px solid #e0e0e0", borderRadius: "0.375rem", width: "100%" }}
@@ -561,11 +689,50 @@ export default function PropertyDetail() {
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "1rem" }}>
                 {photos.map((photo, index) => (
-                  <div key={photo.id} style={{ position: "relative", borderRadius: "6px", overflow: "hidden", border: photo.is_key_photo ? "2px solid #f59e0b" : "2px solid transparent" }}>
+                  <div
+                    key={photo.id}
+                    draggable
+                    onDragStart={(e) => {
+                      setDraggingIndex(index);
+                      e.dataTransfer.effectAllowed = "move";
+                      // Required for Firefox to initiate drag
+                      e.dataTransfer.setData("text/plain", String(index));
+                    }}
+                    onDragOver={(e) => {
+                      if (draggingIndex != null) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggingIndex != null && draggingIndex !== index) {
+                        handleReorderPhoto(draggingIndex, index);
+                      }
+                      setDraggingIndex(null);
+                    }}
+                    onDragEnd={() => setDraggingIndex(null)}
+                    style={{
+                      position: "relative",
+                      borderRadius: "6px",
+                      overflow: "hidden",
+                      border: photo.is_key_photo ? "2px solid #f59e0b" : "2px solid transparent",
+                      cursor: "grab",
+                      opacity: draggingIndex === index ? 0.5 : 1,
+                      outline: draggingIndex != null && draggingIndex !== index ? "2px dashed #93c5fd" : "none",
+                      outlineOffset: "-4px",
+                    }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={photo.photo_url}
-                      alt={photo.notes || "Property"}
+                      alt={
+                        photo.notes
+                          ? photo.notes
+                          : property.street_address
+                          ? `${property.street_address} photo ${index + 1}`
+                          : `Property photo ${index + 1}`
+                      }
                       onClick={() => openGallery(index)}
                       style={{ width: "100%", height: "150px", objectFit: "cover", display: "block", cursor: "pointer" }}
                     />
@@ -580,10 +747,10 @@ export default function PropertyDetail() {
                     {/* Reorder arrows */}
                     <div style={{ position: "absolute", top: "6px", right: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
                       {index > 0 && (
-                        <button onClick={() => handleMovePhoto(photo.id, "up")} title="Move up" style={{ background: "rgba(0,0,0,0.55)", border: "none", color: "white", borderRadius: "3px", padding: "2px 5px", cursor: "pointer", fontSize: "0.7rem", lineHeight: 1 }}>▲</button>
+                        <button aria-label="Move photo up" onClick={() => handleMovePhoto(photo.id, "up")} title="Move up" style={{ background: "rgba(0,0,0,0.55)", border: "none", color: "white", borderRadius: "3px", padding: "2px 5px", cursor: "pointer", fontSize: "0.7rem", lineHeight: 1 }}>▲</button>
                       )}
                       {index < photos.length - 1 && (
-                        <button onClick={() => handleMovePhoto(photo.id, "down")} title="Move down" style={{ background: "rgba(0,0,0,0.55)", border: "none", color: "white", borderRadius: "3px", padding: "2px 5px", cursor: "pointer", fontSize: "0.7rem", lineHeight: 1 }}>▼</button>
+                        <button aria-label="Move photo down" onClick={() => handleMovePhoto(photo.id, "down")} title="Move down" style={{ background: "rgba(0,0,0,0.55)", border: "none", color: "white", borderRadius: "3px", padding: "2px 5px", cursor: "pointer", fontSize: "0.7rem", lineHeight: 1 }}>▼</button>
                       )}
                     </div>
 
@@ -599,6 +766,7 @@ export default function PropertyDetail() {
                         </button>
                       )}
                       <button
+                        aria-label="Delete photo"
                         onClick={() => handleDeletePhoto(photo)}
                         disabled={deletingPhotoId === photo.id}
                         style={{ background: "none", border: "1px solid rgba(255,100,100,0.7)", color: "#fca5a5", borderRadius: "3px", padding: "3px 7px", fontSize: "0.65rem", cursor: "pointer" }}
@@ -646,6 +814,9 @@ export default function PropertyDetail() {
       {/* Gallery Modal */}
       {galleryOpen && photos.length > 0 && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photo ${galleryIndex + 1} of ${photos.length}`}
           style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}
           onClick={() => setGalleryOpen(false)}
         >
@@ -653,7 +824,14 @@ export default function PropertyDetail() {
             style={{ position: "relative", maxWidth: "90vw", maxHeight: "90vh", display: "flex", flexDirection: "column", alignItems: "center" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={() => setGalleryOpen(false)} style={{ position: "absolute", top: "-2.5rem", right: 0, background: "none", border: "none", color: "white", fontSize: "2rem", cursor: "pointer", padding: "0.25rem 0.5rem" }}>✕</button>
+            <button
+              aria-label="Close photo gallery"
+              onClick={() => setGalleryOpen(false)}
+              autoFocus
+              style={{ position: "absolute", top: "-2.5rem", right: 0, background: "none", border: "none", color: "white", fontSize: "2rem", cursor: "pointer", padding: "0.25rem 0.5rem" }}
+            >
+              ✕
+            </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photos[galleryIndex].photo_url}

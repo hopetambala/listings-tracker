@@ -62,6 +62,20 @@ const supabaseInstance = {
 vi.mock('@/lib/supabase/client', () => ({ createClient: () => supabaseInstance }))
 vi.mock('@/lib/api/code-utils', () => ({ generateCode: () => '1111' }))
 
+// Spy on toasts — the real module has no-op listeners in tests, we just need
+// to observe error calls in place of the old alert().
+const toastErrorSpy = vi.fn()
+const toastSuccessSpy = vi.fn()
+vi.mock('@/components/Toast', () => ({
+  toast: {
+    error: (msg: string) => toastErrorSpy(msg),
+    success: (msg: string) => toastSuccessSpy(msg),
+    info: (_msg: string) => {},
+  },
+  showToast: () => {},
+  ToastContainer: () => null,
+}))
+
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -99,6 +113,8 @@ beforeEach(() => {
     return makeChain({ data: null, error: null })
   })
   vi.spyOn(window, 'alert').mockImplementation(() => {})
+  toastErrorSpy.mockReset()
+  toastSuccessSpy.mockReset()
 })
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -107,7 +123,7 @@ async function waitForUploadButton(container: HTMLElement) {
   await waitFor(
     () => {
       const btn = Array.from(container.querySelectorAll('dl-button')).find((b) =>
-        b.textContent?.includes('Upload Properties')
+        b.textContent?.includes('Preview CSV')
       )
       expect(btn).not.toBeUndefined()
     },
@@ -128,6 +144,18 @@ function clickByText(container: HTMLElement, text: string) {
   fireEvent.click(btn)
 }
 
+// Helper for the new two-step flow: preview then confirm.
+async function runPreviewAndUpload(container: HTMLElement) {
+  clickByText(container, 'Preview CSV')
+  await waitFor(() => {
+    const btn = Array.from(container.querySelectorAll('dl-button')).find((b) =>
+      b.textContent?.includes('Confirm upload')
+    )
+    expect(btn).not.toBeUndefined()
+  })
+  clickByText(container, 'Confirm upload')
+}
+
 const VALID_CSV = `listing_link,street_address,mls_number,listing_price,notes
 https://zillow.com/123-main,123 Main St,MLS001,450000,Nice home`
 
@@ -145,37 +173,34 @@ describe('BulkUpload — CSV upload form', () => {
     expect(container.querySelector('dl-textarea')).not.toBeNull()
   })
 
-  // ── RED: no empty-input guard → supabase called with empty data
-  it('shows an alert when Upload is clicked with empty CSV text', async () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+  // ── Empty-input guard now uses toast.error() instead of alert()
+  it('fires an error toast when Preview is clicked with empty CSV text', async () => {
     const { container } = render(<BulkUpload />)
     await waitForUploadButton(container)
 
-    clickByText(container, 'Upload Properties')
+    clickByText(container, 'Preview CSV')
 
-    await waitFor(() => expect(alertSpy).toHaveBeenCalled())
+    await waitFor(() => expect(toastErrorSpy).toHaveBeenCalled())
   })
 
-  // ── RED: parse errors not surfaced → user sees no feedback on bad CSV
   it('renders CSV parse errors in the UI when required column is missing', async () => {
     const { container } = render(<BulkUpload />)
     await waitForUploadButton(container)
 
     fireTextarea(container, INVALID_CSV)
-    clickByText(container, 'Upload Properties')
+    clickByText(container, 'Preview CSV')
 
     await waitFor(() => {
       expect(container.textContent).toMatch(/missing required column/i)
     })
   })
 
-  // ── RED: insert loop not executed → no properties saved
-  it('inserts a property record for each valid CSV row', async () => {
+  it('inserts a property record for each valid CSV row after confirmation', async () => {
     const { container } = render(<BulkUpload />)
     await waitForUploadButton(container)
 
     fireTextarea(container, VALID_CSV)
-    clickByText(container, 'Upload Properties')
+    await runPreviewAndUpload(container)
 
     await waitFor(() => {
       expect(mockPropInsert).toHaveBeenCalledWith(
@@ -188,13 +213,12 @@ describe('BulkUpload — CSV upload form', () => {
     })
   })
 
-  // ── RED: access code insert skipped → properties unreachable
   it('inserts an access code for each successfully created property', async () => {
     const { container } = render(<BulkUpload />)
     await waitForUploadButton(container)
 
     fireTextarea(container, VALID_CSV)
-    clickByText(container, 'Upload Properties')
+    await runPreviewAndUpload(container)
 
     await waitFor(() => {
       expect(mockCodeChain.insert).toHaveBeenCalledWith(
@@ -207,13 +231,12 @@ describe('BulkUpload — CSV upload form', () => {
     })
   })
 
-  // ── RED: results view never shown → user can't see generated codes
   it('shows the results view with success count after upload completes', async () => {
     const { container } = render(<BulkUpload />)
     await waitForUploadButton(container)
 
     fireTextarea(container, VALID_CSV)
-    clickByText(container, 'Upload Properties')
+    await runPreviewAndUpload(container)
 
     await waitFor(() => {
       expect(container.textContent).toMatch(/upload complete/i)
@@ -221,13 +244,12 @@ describe('BulkUpload — CSV upload form', () => {
     })
   })
 
-  // ── RED: "Upload More" button not wired → user can't do a second batch
   it('resets back to the upload form when "Upload More" is clicked', async () => {
     const { container } = render(<BulkUpload />)
     await waitForUploadButton(container)
 
     fireTextarea(container, VALID_CSV)
-    clickByText(container, 'Upload Properties')
+    await runPreviewAndUpload(container)
 
     await waitFor(() => expect(container.textContent).toMatch(/upload complete/i))
 
