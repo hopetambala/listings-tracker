@@ -155,6 +155,12 @@ DROP POLICY IF EXISTS "Users can insert photos" ON listings_tracker_photos;
 CREATE POLICY "Users can insert photos" ON listings_tracker_photos
   FOR INSERT WITH CHECK (true);
 
+-- Needed so buyers can set the key photo, drag-reorder, and edit captions from
+-- the shared property detail page. Without this, UPDATEs silently match 0 rows.
+DROP POLICY IF EXISTS "Users can update photos via access codes" ON listings_tracker_photos;
+CREATE POLICY "Users can update photos via access codes" ON listings_tracker_photos
+  FOR UPDATE USING (true) WITH CHECK (true);
+
 DROP POLICY IF EXISTS "Users can delete photos" ON listings_tracker_photos;
 CREATE POLICY "Users can delete photos" ON listings_tracker_photos
   FOR DELETE USING (true);

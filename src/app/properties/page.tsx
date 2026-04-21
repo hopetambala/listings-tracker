@@ -54,7 +54,7 @@ function Chips<T extends string>({
   ariaLabel: string;
 }) {
   return (
-    <div role="group" aria-label={ariaLabel} style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
+    <div role="group" aria-label={ariaLabel} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
       {options.map((opt) => {
         const selected = opt.value === value;
         return (
@@ -72,25 +72,40 @@ function Chips<T extends string>({
       })}
       <style>{`
         .lt-chip {
-          padding: 0.3rem 0.75rem;
+          padding: 0.45rem 1rem;
           border-radius: 9999px;
-          font-size: 0.8rem;
+          font-size: 0.82rem;
           font-weight: 600;
-          border: 1.5px solid #e5e7eb;
+          letter-spacing: 0.01em;
+          border: 1.5px solid #e2e8f0;
           background: white;
-          color: #374151;
+          color: #334155;
           cursor: pointer;
           outline: none;
-          transition: background 80ms, border-color 80ms, color 80ms, box-shadow 80ms;
+          transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), background 120ms, border-color 120ms, color 120ms, box-shadow 120ms;
         }
-        .lt-chip:hover { border-color: #cbd5e1; }
+        .lt-chip:hover {
+          border-color: #0f172a;
+          color: #0f172a;
+          transform: translateY(-1px);
+        }
+        .lt-chip:active { transform: translateY(0); }
         .lt-chip[data-selected] {
           background: #0f172a;
           border-color: #0f172a;
           color: white;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+        }
+        .lt-chip[data-selected]:hover {
+          background: #1e293b;
+          border-color: #1e293b;
+          transform: translateY(-1px);
         }
         .lt-chip:focus-visible {
-          box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.25);
+        }
+        .lt-chip[data-selected]:focus-visible {
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25), 0 0 0 3px rgba(15, 23, 42, 0.25);
         }
       `}</style>
     </div>
@@ -379,8 +394,19 @@ function UserPropertiesInner() {
         <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-justify-between cl-dlite-flex-wrap cl-dlite-sem-gap-300 cl-dlite-sem-mb-600">
           <div className="cl-dlite-flex cl-dlite-items-center cl-dlite-sem-gap-300">
             <dl-heading level={1} style={{ margin: 0 }}>Your Listings</dl-heading>
-            <span style={{ fontSize: "0.8rem", color: "#6b7280", background: "#f3f4f6", borderRadius: "9999px", padding: "2px 10px" }}>
-              {displayedProperties.length} of {properties.length}
+            <span
+              aria-label={`Showing ${displayedProperties.length} of ${properties.length} listings`}
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                color: "#0f172a",
+                background: "#e2e8f0",
+                borderRadius: "9999px",
+                padding: "3px 12px",
+                letterSpacing: "0.01em",
+              }}
+            >
+              {displayedProperties.length} <span style={{ color: "#64748b", fontWeight: 500 }}>of {properties.length}</span>
             </span>
           </div>
           <dl-button
@@ -401,30 +427,54 @@ function UserPropertiesInner() {
 
         {properties.length > 0 && (
           <div
+            className="lt-sticky-filters"
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: "0.5rem",
-              marginBottom: "1.25rem",
+              gap: "0.75rem",
+              marginBottom: "1.5rem",
               position: "sticky",
               top: 0,
               zIndex: 10,
-              padding: "0.5rem 0 0.625rem",
-              background: "rgba(255,255,255,0.92)",
-              backdropFilter: "blur(6px)",
-              WebkitBackdropFilter: "blur(6px)",
-              borderBottom: "1px solid #e5e7eb",
+              padding: "1rem 1.25rem",
+              background: "rgba(255,255,255,0.96)",
+              backdropFilter: "blur(10px) saturate(140%)",
+              WebkitBackdropFilter: "blur(10px) saturate(140%)",
+              boxShadow: "0 1px 0 rgba(15, 23, 42, 0.06), 0 8px 16px -12px rgba(15, 23, 42, 0.12)",
+              borderRadius: "0.75rem",
+              border: "1px solid #e2e8f0",
             }}
           >
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "stretch" }}>
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search address, notes, or MLS…"
-                aria-label="Search listings"
-                style={{ ...controlBase, flex: "1 1 200px" }}
-              />
+              <div style={{ position: "relative", flex: "1 1 200px", display: "flex" }}>
+                <span
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    left: "0.75rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#64748b",
+                    pointerEvents: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.75" />
+                    <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search address, notes, or MLS…"
+                  aria-label="Search listings"
+                  style={{ ...controlBase, paddingLeft: "2.25rem", width: "100%" }}
+                />
+              </div>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as SortBy)}
@@ -451,6 +501,28 @@ function UserPropertiesInner() {
                 ariaLabel="Filter by budget fit"
               />
             )}
+            <style>{`
+              .lt-sticky-filters input[type="search"]::-webkit-search-cancel-button {
+                appearance: none;
+                height: 14px;
+                width: 14px;
+                background: #94a3b8;
+                -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 4l8 8M12 4l-8 8' stroke='black' stroke-width='1.75' stroke-linecap='round'/></svg>") no-repeat center / contain;
+                          mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M4 4l8 8M12 4l-8 8' stroke='black' stroke-width='1.75' stroke-linecap='round'/></svg>") no-repeat center / contain;
+                cursor: pointer;
+                margin-right: 0.25rem;
+              }
+              .lt-sticky-filters input[type="search"]:focus {
+                border-color: #0f172a;
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+              }
+              .lt-sticky-filters select:focus {
+                border-color: #0f172a;
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+              }
+            `}</style>
           </div>
         )}
 
