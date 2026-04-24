@@ -105,18 +105,23 @@ describe("budgetDelta", () => {
   });
 
   it("is in_range when price is at or below target", () => {
-    expect(budgetDelta(950_000, 950_000)).toEqual({ state: "in_range", deltaDollars: 0 });
-    expect(budgetDelta(900_000, 950_000)).toEqual({ state: "in_range", deltaDollars: -50_000 });
+    expect(budgetDelta(950_000, 950_000)).toEqual({ state: "in_range", deltaDollars: 0, deltaPct: 0 });
+    const under = budgetDelta(900_000, 950_000);
+    expect(under).toMatchObject({ state: "in_range", deltaDollars: -50_000 });
+    expect(under?.deltaPct).toBeCloseTo(-5.263, 2);
   });
 
   it("is stretch when 0-5% over target", () => {
-    expect(budgetDelta(975_000, 950_000)).toEqual({ state: "stretch", deltaDollars: 25_000 });
+    const result = budgetDelta(975_000, 950_000);
+    expect(result).toMatchObject({ state: "stretch", deltaDollars: 25_000 });
+    expect(result?.deltaPct).toBeCloseTo(2.632, 2);
   });
 
   it("is over when >5% above target", () => {
     const result = budgetDelta(1_050_000, 950_000);
     expect(result?.state).toBe("over");
     expect(result?.deltaDollars).toBe(100_000);
+    expect(result?.deltaPct).toBeCloseTo(10.526, 2);
   });
 });
 

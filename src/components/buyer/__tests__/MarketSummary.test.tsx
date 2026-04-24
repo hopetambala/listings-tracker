@@ -10,7 +10,12 @@ function mkSummary(overrides: Partial<MarketSummaryData> = {}): MarketSummaryDat
     avgOverAskPct: null,
     medianPricePerSqft: null,
     countInRange: null,
+    countStretch: null,
     countOverBudget: null,
+    medianDollarsUnder: null,
+    medianPctUnder: null,
+    medianDollarsOver: null,
+    medianPctOver: null,
     ...overrides,
   };
 }

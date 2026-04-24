@@ -191,9 +191,9 @@ export function ListingCard({
           {budget && (
             <Chip tone={budget.state === "in_range" ? "positive" : budget.state === "stretch" ? "warning" : "warning"}>
               {budget.state === "in_range" && budget.deltaDollars === 0 && "At your budget"}
-              {budget.state === "in_range" && budget.deltaDollars < 0 && `$${formatPrice(Math.abs(budget.deltaDollars))} under budget`}
-              {budget.state === "stretch" && `Stretch: +$${formatPrice(budget.deltaDollars)}`}
-              {budget.state === "over" && `$${formatPrice(budget.deltaDollars)} over budget`}
+              {budget.state === "in_range" && budget.deltaDollars < 0 && `$${formatPrice(Math.abs(budget.deltaDollars))} (${Math.abs(budget.deltaPct).toFixed(1)}%) under budget`}
+              {budget.state === "stretch" && `Stretch: +$${formatPrice(budget.deltaDollars)} (${budget.deltaPct.toFixed(1)}%)`}
+              {budget.state === "over" && `$${formatPrice(budget.deltaDollars)} (${budget.deltaPct.toFixed(1)}%) over budget`}
             </Chip>
           )}
           {dom != null && !isSold && (

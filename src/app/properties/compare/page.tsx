@@ -266,12 +266,12 @@ function CompareListingsInner() {
                   const delta = budgetDelta(comparePrice, targetPrice);
                   if (!delta) return <Cell key={`budget-${property.id}`}>—</Cell>;
                   if (delta.state === "in_range") {
-                    return <Cell key={`budget-${property.id}`}>In range (${formatPrice(Math.abs(delta.deltaDollars))} under)</Cell>;
+                    return <Cell key={`budget-${property.id}`}>In range (${formatPrice(Math.abs(delta.deltaDollars))} / {Math.abs(delta.deltaPct).toFixed(1)}% under)</Cell>;
                   }
                   if (delta.state === "stretch") {
-                    return <Cell key={`budget-${property.id}`}>Stretch (+${formatPrice(delta.deltaDollars)})</Cell>;
+                    return <Cell key={`budget-${property.id}`}>Stretch (+${formatPrice(delta.deltaDollars)} / {delta.deltaPct.toFixed(1)}%)</Cell>;
                   }
-                  return <Cell key={`budget-${property.id}`}>Over (+${formatPrice(delta.deltaDollars)})</Cell>;
+                  return <Cell key={`budget-${property.id}`}>Over (+${formatPrice(delta.deltaDollars)} / {delta.deltaPct.toFixed(1)}%)</Cell>;
                 })}
               </Row>
             )}

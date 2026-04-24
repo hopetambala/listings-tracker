@@ -8,6 +8,7 @@ export type BudgetState = "in_range" | "stretch" | "over";
 export interface BudgetDelta {
   state: BudgetState;
   deltaDollars: number;
+  deltaPct: number;
 }
 
 export interface MarketSummary {
@@ -16,7 +17,12 @@ export interface MarketSummary {
   avgOverAskPct: number | null;
   medianPricePerSqft: number | null;
   countInRange: number | null;
+  countStretch: number | null;
   countOverBudget: number | null;
+  medianDollarsUnder: number | null;
+  medianPctUnder: number | null;
+  medianDollarsOver: number | null;
+  medianPctOver: number | null;
 }
 
 export interface ListingBundle {
@@ -56,9 +62,10 @@ export function overAskPct(soldPrice: number, originalAsk: number): number | nul
 export function budgetDelta(price: number, target: number | null | undefined): BudgetDelta | null {
   if (target == null || !Number.isFinite(target) || target <= 0) return null;
   const deltaDollars = price - target;
-  if (deltaDollars <= 0) return { state: "in_range", deltaDollars };
-  if (deltaDollars / target <= STRETCH_PCT) return { state: "stretch", deltaDollars };
-  return { state: "over", deltaDollars };
+  const deltaPct = (deltaDollars / target) * 100;
+  if (deltaDollars <= 0) return { state: "in_range", deltaDollars, deltaPct };
+  if (deltaDollars / target <= STRETCH_PCT) return { state: "stretch", deltaDollars, deltaPct };
+  return { state: "over", deltaDollars, deltaPct };
 }
 
 export function daysOnMarket(
@@ -93,7 +100,12 @@ export function marketSummary(
   const overAskPcts: number[] = [];
   const ppsqfts: number[] = [];
   let inRange = 0;
+  let stretch = 0;
   let overBudget = 0;
+  const underDollars: number[] = [];
+  const underPcts: number[] = [];
+  const overDollars: number[] = [];
+  const overPcts: number[] = [];
 
   for (const { property, priceHistory } of listings) {
     const isSold = property.status === "sold" && property.sold_price != null;
@@ -111,20 +123,36 @@ export function marketSummary(
     if (target != null && target > 0) {
       const comparePrice = isSold ? (property.sold_price as number) : currentListPrice(priceHistory, property);
       const delta = budgetDelta(comparePrice, target);
-      if (delta?.state === "in_range") inRange++;
-      else if (delta?.state === "over") overBudget++;
+      if (delta?.state === "in_range") {
+        inRange++;
+        underDollars.push(Math.abs(delta.deltaDollars));
+        underPcts.push(Math.abs(delta.deltaPct));
+      } else if (delta?.state === "stretch") {
+        stretch++;
+      } else if (delta?.state === "over") {
+        overBudget++;
+        overDollars.push(delta.deltaDollars);
+        overPcts.push(delta.deltaPct);
+      }
     }
   }
 
   const avgOverAskPct =
     overAskPcts.length > 0 ? overAskPcts.reduce((a, b) => a + b, 0) / overAskPcts.length : null;
 
+  const hasTarget = target != null && target > 0;
+
   return {
     soldCount,
     activeCount,
     avgOverAskPct,
     medianPricePerSqft: median(ppsqfts),
-    countInRange: target != null && target > 0 ? inRange : null,
-    countOverBudget: target != null && target > 0 ? overBudget : null,
+    countInRange: hasTarget ? inRange : null,
+    countStretch: hasTarget ? stretch : null,
+    countOverBudget: hasTarget ? overBudget : null,
+    medianDollarsUnder: hasTarget ? median(underDollars) : null,
+    medianPctUnder: hasTarget ? median(underPcts) : null,
+    medianDollarsOver: hasTarget ? median(overDollars) : null,
+    medianPctOver: hasTarget ? median(overPcts) : null,
   };
 }

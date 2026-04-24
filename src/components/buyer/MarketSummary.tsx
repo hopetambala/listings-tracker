@@ -5,6 +5,8 @@ interface MarketSummaryProps {
   summary: MarketSummaryData;
   buyerLabel?: string | null;
   targetPrice?: number | null;
+  filterStatus?: string;
+  query?: string;
 }
 
 interface Stat {
@@ -12,6 +14,11 @@ interface Stat {
   value: string;
   tone: "neutral" | "positive" | "warning";
   sub?: string;
+}
+
+function formatMedianDelta(dollars: number | null, pct: number | null, direction: "under" | "over"): string | null {
+  if (dollars == null || pct == null) return null;
+  return `median $${formatPrice(Math.round(dollars))} (${pct.toFixed(1)}%) ${direction}`;
 }
 
 function buildStats(summary: MarketSummaryData, targetPrice?: number | null): Stat[] {
@@ -38,20 +45,31 @@ function buildStats(summary: MarketSummaryData, targetPrice?: number | null): St
   }
 
   if (summary.countInRange != null && targetPrice) {
+    const medianPart = formatMedianDelta(summary.medianDollarsUnder, summary.medianPctUnder, "under");
     stats.push({
       label: "In your range",
       value: `${summary.countInRange}`,
       tone: "positive",
-      sub: `at or under $${formatPrice(targetPrice)}`,
+      sub: `at or under $${formatPrice(targetPrice)}${medianPart ? ` · ${medianPart}` : ""}`,
+    });
+  }
+
+  if (summary.countStretch != null && summary.countStretch > 0 && targetPrice) {
+    stats.push({
+      label: "Near budget",
+      value: `${summary.countStretch}`,
+      tone: "warning",
+      sub: `within 5% over $${formatPrice(targetPrice)}`,
     });
   }
 
   if (summary.countOverBudget != null && targetPrice) {
+    const medianPart = formatMedianDelta(summary.medianDollarsOver, summary.medianPctOver, "over");
     stats.push({
       label: "Over budget",
       value: `${summary.countOverBudget}`,
       tone: "warning",
-      sub: `more than 5% over $${formatPrice(targetPrice)}`,
+      sub: `more than 5% over $${formatPrice(targetPrice)}${medianPart ? ` · ${medianPart}` : ""}`,
     });
   }
 
@@ -64,9 +82,21 @@ const TONE_STYLES: Record<Stat["tone"], { valueColor: string; borderColor: strin
   warning: { valueColor: "#9a3412", borderColor: "#fed7aa" },
 };
 
-export function MarketSummary({ summary, buyerLabel, targetPrice }: MarketSummaryProps) {
+const STATUS_LABELS: Record<string, string> = {
+  all: "All statuses",
+  active: "Active",
+  pending: "Pending",
+  sold: "Sold",
+  withdrawn: "Withdrawn",
+};
+
+export function MarketSummary({ summary, buyerLabel, targetPrice, filterStatus, query }: MarketSummaryProps) {
   const stats = buildStats(summary, targetPrice);
   if (stats.length === 0) return null;
+
+  const trimmedQuery = query?.trim() ?? "";
+  const showScope = (filterStatus && filterStatus !== "all") || trimmedQuery.length > 0;
+  const statusLabel = filterStatus ? STATUS_LABELS[filterStatus] ?? filterStatus : "All statuses";
 
   return (
     <section aria-label="Market summary" className="cl-dlite-sem-mb-600">
@@ -75,6 +105,14 @@ export function MarketSummary({ summary, buyerLabel, targetPrice }: MarketSummar
           <dl-text size="300" color="secondary">
             {buyerLabel ? `${buyerLabel} · ` : ""}
             {targetPrice ? `Budget $${formatPrice(targetPrice)}` : ""}
+          </dl-text>
+        </div>
+      )}
+      {showScope && (
+        <div className="cl-dlite-sem-mb-200">
+          <dl-text size="300" color="secondary">
+            Showing: {statusLabel}
+            {trimmedQuery ? ` · matching "${trimmedQuery}"` : ""}
           </dl-text>
         </div>
       )}

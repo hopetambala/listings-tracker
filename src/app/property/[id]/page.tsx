@@ -503,9 +503,9 @@ export default function PropertyDetail() {
                 </dl-text>
                 {budget && (
                   <dl-text size="300" color="secondary" style={{ display: "block", marginTop: "0.125rem", fontSize: "0.75rem" }}>
-                    {budget.state === "in_range" && budget.deltaDollars <= 0 && `$${formatPrice(Math.abs(budget.deltaDollars))} under your budget`}
-                    {budget.state === "stretch" && `$${formatPrice(budget.deltaDollars)} over your budget (stretch)`}
-                    {budget.state === "over" && `$${formatPrice(budget.deltaDollars)} over your budget`}
+                    {budget.state === "in_range" && budget.deltaDollars <= 0 && `$${formatPrice(Math.abs(budget.deltaDollars))} (${Math.abs(budget.deltaPct).toFixed(1)}%) under your budget`}
+                    {budget.state === "stretch" && `$${formatPrice(budget.deltaDollars)} (${budget.deltaPct.toFixed(1)}%) over your budget (stretch)`}
+                    {budget.state === "over" && `$${formatPrice(budget.deltaDollars)} (${budget.deltaPct.toFixed(1)}%) over your budget`}
                   </dl-text>
                 )}
               </div>

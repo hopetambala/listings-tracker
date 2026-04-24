@@ -49,7 +49,7 @@ function Chips<T extends string>({
   ariaLabel,
 }: {
   value: T;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; count?: number }[];
   onChange: (v: T) => void;
   ariaLabel: string;
 }) {
@@ -67,6 +67,9 @@ function Chips<T extends string>({
             onClick={() => onChange(opt.value)}
           >
             {opt.label}
+            {opt.count != null && (
+              <span className="lt-chip__count" aria-hidden="true">{opt.count}</span>
+            )}
           </button>
         );
       })}
@@ -82,7 +85,28 @@ function Chips<T extends string>({
           color: #334155;
           cursor: pointer;
           outline: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
           transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), background 120ms, border-color 120ms, color 120ms, box-shadow 120ms;
+        }
+        .lt-chip__count {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 1.5rem;
+          padding: 0 0.4rem;
+          height: 1.25rem;
+          border-radius: 9999px;
+          background: #e2e8f0;
+          color: #475569;
+          font-size: 0.72rem;
+          font-weight: 700;
+          line-height: 1;
+        }
+        .lt-chip[data-selected] .lt-chip__count {
+          background: rgba(255, 255, 255, 0.2);
+          color: white;
         }
         .lt-chip:hover {
           border-color: #0f172a;
@@ -339,12 +363,33 @@ function UserPropertiesInner() {
   }, [properties, filterStatus, filterBudget, query, sortBy, pricesByProperty, targetPrice]);
 
   const summary = useMemo(() => {
-    const bundles: ListingBundle[] = properties.map((property) => ({
+    let scoped = properties;
+    if (filterStatus !== "all") {
+      scoped = scoped.filter((p) => (p.status ?? "active") === filterStatus);
+    }
+    const q = query.trim().toLowerCase();
+    if (q) {
+      scoped = scoped.filter((p) =>
+        [p.street_address, p.notes, p.mls_number]
+          .filter(Boolean)
+          .some((field) => (field as string).toLowerCase().includes(q))
+      );
+    }
+    const bundles: ListingBundle[] = scoped.map((property) => ({
       property,
       priceHistory: pricesByProperty[property.id] ?? [],
     }));
     return marketSummary(bundles, targetPrice);
-  }, [properties, pricesByProperty, targetPrice]);
+  }, [properties, filterStatus, query, pricesByProperty, targetPrice]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { active: 0, pending: 0, sold: 0, withdrawn: 0 };
+    for (const p of properties) {
+      const s = p.status ?? "active";
+      counts[s] = (counts[s] ?? 0) + 1;
+    }
+    return counts;
+  }, [properties]);
 
   const heroFor = (propertyId: string): string | null => {
     const photos = photosByProperty[propertyId] ?? [];
@@ -422,7 +467,13 @@ function UserPropertiesInner() {
         </div>
 
         {properties.length > 0 && (
-          <MarketSummary summary={summary} buyerLabel={buyerLabel} targetPrice={targetPrice} />
+          <MarketSummary
+            summary={summary}
+            buyerLabel={buyerLabel}
+            targetPrice={targetPrice}
+            filterStatus={filterStatus}
+            query={query}
+          />
         )}
 
         {properties.length > 0 && (
@@ -489,7 +540,10 @@ function UserPropertiesInner() {
             </div>
             <Chips<StatusFilter>
               value={filterStatus}
-              options={STATUS_FILTERS}
+              options={STATUS_FILTERS.map((o) => ({
+                ...o,
+                count: o.value === "all" ? properties.length : statusCounts[o.value] ?? 0,
+              }))}
               onChange={setFilterStatus}
               ariaLabel="Filter by status"
             />
